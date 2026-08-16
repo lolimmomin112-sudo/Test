@@ -26,12 +26,15 @@ TextLabel.Font = Enum.Font.GothamBold
 TextLabel.TextScaled = true
 TextLabel.Parent = Frame
 
+-- Animation
 local TweenService = game:GetService("TweenService")
 
+-- Fade in
 TweenService:Create(Frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
     BackgroundTransparency = 0
 }):Play()
 
+-- Pulse animation
 local pulse = TweenService:Create(TextLabel, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
     TextSize = 50
 })
@@ -40,6 +43,7 @@ local pulse2 = TweenService:Create(TextLabel, TweenInfo.new(0.8, Enum.EasingStyl
     TextSize = 40
 })
 
+-- Glow effect
 local glow = Instance.new("ImageLabel")
 glow.Size = UDim2.new(1.2, 0, 1.2, 0)
 glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
@@ -49,6 +53,7 @@ glow.ImageColor3 = Color3.fromRGB(255, 105, 180)
 glow.ImageTransparency = 0.7
 glow.Parent = Frame
 
+-- Run animation loop
 coroutine.wrap(function()
     while Frame.Parent do
         pulse:Play()
@@ -58,6 +63,7 @@ coroutine.wrap(function()
     end
 end)()
 
+-- Fade out and remove
 task.wait(2.5)
 TweenService:Create(Frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
     BackgroundTransparency = 1
@@ -70,6 +76,8 @@ pcall(function()
 end)
 
 WindUI:SetFont("rbxasset://fonts/families/FredokaOne.json")
+
+-- REMOVED CrashServer function
 
 function gradient(text, startColor, endColor)
 		local result = "";
@@ -89,19 +97,20 @@ function gradient(text, startColor, endColor)
 WindUI:Popup({Title="Scripterkiddo",Icon="home",Desc="Welcome!",Color=Color3.fromRGB(120, 60, 90),AnimDuration=0.7,Buttons={{Title="Exit",Callback=function()
 end,Variant="Tertiary"},{Title="Continue",Callback=function()
 	Confirmed = true;
-	loadstring(game:HttpGet("ucanputwhateveruwant"))()
+	-- Execute external script after user clicks continue
+    loadstring(game:HttpGet("ucanputwhateveruwant"))()
 end,Variant="Secondary"}}});
 	repeat
 		task.wait();
 	until Confirmed 
 
 -- */  Colors  /* --
-local Green = Color3.fromHex("#FF69B4")
-local Blue = Color3.fromHex("#FF1493")
-local Yellow = Color3.fromHex("#FFB6C1")
-local Grey = Color3.fromHex("#FFC0CB")
-local Purple = Color3.fromHex("#E91E63")
-local Red = Color3.fromHex("#DC143C")
+local Green = Color3.fromHex("#FF69B4") -- Valentine Pink
+local Blue = Color3.fromHex("#FF1493") -- Deep Pink
+local Yellow = Color3.fromHex("#FFB6C1") -- Light Pink
+local Grey = Color3.fromHex("#FFC0CB") -- Pink
+local Purple = Color3.fromHex("#E91E63") -- Pink Red
+local Red = Color3.fromHex("#DC143C") -- Crimson
 
 -- */  Window  /* --
 local Window = WindUI:CreateWindow({
@@ -131,8 +140,10 @@ local Window = WindUI:CreateWindow({
     },
 })
 
+-- Toggle key (desktop); mobile uses the OpenButton tap
 Window:SetToggleKey(Enum.KeyCode.RightShift)
 
+-- */  Mac Button Effects  /* --
 task.defer(function()
     local TweenService = game:GetService("TweenService")
     local RunService   = game:GetService("RunService")
@@ -172,6 +183,7 @@ task.defer(function()
     end)
 end)
 
+-- */  Tags  /* --
 local AuraTag
 do
     AuraTag = Window:Tag({
@@ -182,6 +194,7 @@ do
     })
 end
 
+-- */  Sections  /* --
 local Sections = {
     HomeSection = Window:Section({
         Title = "Scripterkiddo",
@@ -275,6 +288,8 @@ local Sections = {
     }),
 }
 
+-- */  Tabs  /* --
+-- REMOVED ServerCrasher tab
 local Tabs = {
     HomeTab = Sections.HomeSection:Tab({ Title = "Scripterkiddo", Icon = "home", Desc = "Get started with Scripterkiddo", IconColor = Blue, IconShape = "Square", Border = true }),
     FastestAutofarmTab = Sections.AutofarmSection:Tab({ Title = "Scripterkiddo", Icon = "zap", Desc = "Collect coins automatically", IconColor = Green, IconShape = "Square", Border = true }),
@@ -285,13 +300,14 @@ local Tabs = {
     EndRoundTab = Sections.RoundManagement:Tab({ Title = "Scripterkiddo", Icon = "refresh-cw", Desc = "Fling and round controls", IconColor = Purple, IconShape = "Square", Border = true }),
     Spawner = Sections.NewGodlies:Tab({ Title = "Scripterkiddo", Icon = "refresh-cw", Desc = "Spawn any weapon in game", IconColor = Blue, IconShape = "Square", Border = true }),
     CoinDuper = Sections.NewGodlies:Tab({ Title = "Scripterkiddo", Icon = "refresh-cw", Desc = "Duplicate event coins", IconColor = Green, IconShape = "Square", Border = true }),
+    -- ServerCrasher tab REMOVED
     BeachballsTab = Sections.Halloween:Tab({ Title = "Scripterkiddo", Icon = "gift", Desc = "Event coin duplication", IconColor = Green, IconShape = "Square", Border = true }),
     ChangelogsTab = Sections.Halloween:Tab({ Title = "Scripterkiddo", Icon = "info", Desc = "Update history", IconColor = Grey, IconShape = "Square", Border = true }),
     ThemesTab = Sections.AppearanceSection:Tab({ Title = "Scripterkiddo", Icon = "palette", Desc = "Switch the UI theme", IconColor = Purple, IconShape = "Square", Border = true }),
     DevelopersTab = Sections.Credits:Tab({ Title = "Scripterkiddo", Icon = "info", Desc = "Credits and developers", IconColor = Grey, IconShape = "Square", Border = true })
 }
 
--- Theme Icon Colors
+-- */  Theme Icon Colors  /* --
 local ThemeIconMap = {
     Rose        = { Accent="#be185d", Icon="#fb7185", Button="#e95f74", Placeholder="#d67aa6" },
     Easter      = { Accent="#a855f7", Icon="#e879f9", Button="#7c3aed", Placeholder="#9b8fc0" },
@@ -348,6 +364,7 @@ local function updateTabColors(theme)
     setColor(Tabs.EndRoundTab,         accent)
     setColor(Tabs.Spawner,             accent)
     setColor(Tabs.CoinDuper,           icon)
+    -- ServerCrasher removed
     setColor(Tabs.BeachballsTab,       icon)
     setColor(Tabs.ChangelogsTab,       placeholder)
     setColor(Tabs.ThemesTab,           accent)
@@ -736,6 +753,7 @@ local function miniFling(Targets)
     end
 end
 
+-- Find murderer logic
 local function getMurderer()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local success, result = pcall(function()
@@ -751,14 +769,19 @@ local function getMurderer()
     return nil
 end
 
+-- =========================
 -- ESP CONFIG & CORE STATE
+-- =========================
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
+-- Universal-style ESP settings combined with MM2-specific role + gun ESP
 local ESPSettings = {
     Enabled = false,
     BoxESP = false,
@@ -774,10 +797,16 @@ local ESPSettings = {
     AutoGrabGun = false,
 }
 
+-- MM2 role state
 local roles, Murder, Sheriff, Hero = {}, nil, nil, nil
+
+-- Gun-drop ESP state
 local notifiedGunDrops = {}
+
+-- Per-player ESP objects
 local ESPObjects = {}
 
+-- MM2 map names that can contain GunDrop
 local mapPaths = {
     "ResearchFacility", "Hospital3", "MilBase", "House2", "Workplace",
     "Mansion2", "BioLab", "Hotel", "Factory", "Bank2", "PoliceStation"
@@ -813,6 +842,10 @@ local function getAllGunDrops()
     return list
 end
 
+-- =========================
+-- MM2 ROLE HELPERS
+-- =========================
+
 local function IsAlive(player)
     local data = roles[player.Name]
     return data and not data.Killed and not data.Dead
@@ -839,6 +872,12 @@ local function UpdateRoles()
     end
 end
 
+local function getRoleTag(player)
+    local data = roles[player.Name]
+    if not data then return "Innocent" end
+    return data.Role or "Innocent"
+end
+
 local function getESPColorForPlayer(player)
     if not IsAlive(player) then
         return nil
@@ -861,6 +900,10 @@ local function getESPColorForPlayer(player)
 
     return nil
 end
+
+-- =========================
+-- UNIVERSAL ESP BACKEND
+-- =========================
 
 local function shouldESP(player)
     if not ESPSettings.Enabled then
@@ -1009,6 +1052,10 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+-- =========================
+-- GUNDROP ESP & AUTO GRAB
+-- =========================
 
 local function createGunDropHighlight(gunDrop)
     if gunDrop and not gunDrop:FindFirstChild("GunDropHighlight") then
@@ -1173,7 +1220,10 @@ local function GrabNearestGun()
     return false
 end
 
--- Aimbot System
+-- =========================
+-- PING-AWARE AIMBOT (ROLE-AWARE)
+-- =========================
+
 local Aimbot = {}
 
 local aimbotRequiredDistance = 2000
@@ -1189,6 +1239,19 @@ local function getPingMs()
     if ok and type(ping) == "number" and ping > 0 then
         local ms = math.floor(ping * 1000 + 0.5)
         if ms > 0 then return ms end
+    end
+    local stats = game:GetService("Stats")
+    local perf = stats:FindFirstChild("PerformanceStats")
+    if perf then
+        local net = perf:FindFirstChild("Network")
+        if net and net:FindFirstChild("Ping") then
+            local pingStat = net.Ping
+            if type(pingStat) == "number" then return math.floor(pingStat + 0.5) end
+            if pingStat and pingStat.GetValue and type(pingStat.GetValue) == "function" then
+                local okV, v = pcall(function() return pingStat:GetValue() end)
+                if okV and type(v) == "number" and v > 0 then return math.floor(v + 0.5) end
+            end
+        end
     end
     return 0
 end
@@ -1378,9 +1441,11 @@ local function aimbotLoad()
                     local dx = (vector.X - mousePos.X) * Aimbot.Settings.ThirdPersonSensitivity
                     local dy = (vector.Y - mousePos.Y) * Aimbot.Settings.ThirdPersonSensitivity
 
-                    pcall(function()
+                    local ok = pcall(function()
                         (mousemoverel or Input and Input.MouseMove)(dx, dy)
                     end)
+                    if not ok then
+                    end
                 else
                     local newCFrame = CFrame.new(Camera.CFrame.Position, predictedPos)
                     if Aimbot.Settings.Sensitivity > 0 then
@@ -1483,7 +1548,8 @@ end
 
 aimbotLoad()
 
--- Utility Functions
+-- */  Utility Functions  /* --
+
 local function GetPlayers()
     local players = {}
     for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
@@ -1494,7 +1560,7 @@ local function GetPlayers()
     return players
 end
 
--- Variables
+-- */  Variables  /* --
 local selectedPlayer = nil
 local flingMurdererEnabled = false
 local hasFlingedThisRound = false
@@ -1551,7 +1617,7 @@ local function disableNoclip()
     end
 end
 
--- Autofarm Tab
+-- */  Autofarm Tab  /* --
 do
     local AutofarmMainSection = Tabs.FastestAutofarmTab:Section({ Title = "Scripterkiddo", Desc = "Collect coins automatically", Box = true, BoxBorder = true, Opened = true })
     AutofarmMainSection:Toggle({
@@ -1743,21 +1809,21 @@ do
                             if not success then
                                 WindUI:Notify({ Title = "Scripterkiddo", Desc = "Move failed, retrying...", Duration = 2 })
                                 task.wait(1)
-                                -- Continue to next iteration
-                            else
-                                local v = target:FindFirstChild("CoinVisual")
-                                local waitTime = 0
-                                while fastestAutofarmEnabled and v and not v:GetAttribute("Collected") and v.Parent and waitTime < 10 do
-                                    if not LP:GetAttribute("Alive") then break end
-                                    local n_target = getNearestCoinAwayFromMurderer(Char:GetPivot().Position)
-                                    if n_target and n_target ~= target then break end
-                                    task.wait(0.1)
-                                    waitTime = waitTime + 0.1
-                                end
-
-                                collectedCoins = collectedCoins + 1
-                                WindUI:Notify({ Title = "Scripterkiddo", Desc = "Total Coins: " .. collectedCoins, Duration = 2 })
+                                continue
                             end
+
+                            local v = target:FindFirstChild("CoinVisual")
+                            local waitTime = 0
+                            while fastestAutofarmEnabled and v and not v:GetAttribute("Collected") and v.Parent and waitTime < 10 do
+                                if not LP:GetAttribute("Alive") then break end
+                                local n_target = getNearestCoinAwayFromMurderer(Char:GetPivot().Position)
+                                if n_target and n_target ~= target then break end
+                                task.wait(0.1)
+                                waitTime = waitTime + 0.1
+                            end
+
+                            collectedCoins = collectedCoins + 1
+                            WindUI:Notify({ Title = "Scripterkiddo", Desc = "Total Coins: " .. collectedCoins, Duration = 2 })
                         else
                             task.wait(2)
                         end
@@ -1801,7 +1867,7 @@ do
 })
 end
 
--- Anti AFK Tab
+-- */  Anti AFK Tab  /* --
 do
     local AntiAFKSection = Tabs.AntiAFKTab:Section({ Title = "Scripterkiddo", Box = true, BoxBorder = true, Opened = true })
     local AntiAFKBtn
@@ -1815,7 +1881,10 @@ do
     })
 end
 
--- Combat Tab
+-- =========================
+-- COMBAT TAB (AIMBOT + SHERIFF TOOLS)
+-- =========================
+
 local function findMurdererPlayer()
     pcall(UpdateRoles)
 
@@ -1847,6 +1916,8 @@ local aimButtonActive = false
 local aimButtonFrame = nil
 local aimButtonSize = 50
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local function getShootRemote()
     local function findIn(parent)
         if not parent then return nil end
@@ -1860,6 +1931,15 @@ local function getShootRemote()
     if ReplicatedStorage:FindFirstChild("Remotes") then
         r = findIn(ReplicatedStorage.Remotes)
         if r then return r end
+    end
+    if getgenv and getgenv().getNil then
+        r = getgenv().getNil("Shoot", "RemoteEvent")
+        if r then return r end
+    end
+    if getgenv and getgenv().getnilinstances then
+        for _, inst in ipairs(getgenv().getnilinstances()) do
+            if inst.Name == "Shoot" and inst:IsA("RemoteEvent") then return inst end
+        end
     end
     for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
         if desc.Name == "Shoot" and desc:IsA("RemoteEvent") then return desc end
@@ -2101,6 +2181,8 @@ local function CreateShotButton()
 end
 
 do
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
     local AimbotSection = Tabs.CombatTab:Section({
         Title = "Scripterkiddo",
         Desc = "Enabled camlock for PC and mobile. Keybind: E (PC). Mobile: use Aim Button below.",
@@ -2291,7 +2373,7 @@ do
     })
 end
 
--- ESP Tab
+-- */  ESP Tab  /* --
 do
     local MainESPSection = Tabs.EspTab:Section({
         Title = "Scripterkiddo",
@@ -2450,6 +2532,8 @@ do
     })
 end
 
+-- */  Server Crasher Tab REMOVED  /* --
+
 -- Coin Detection and Auto Reset System
 local coinDetectionEnabled = false
 local coinDetectionThread = nil
@@ -2464,7 +2548,42 @@ local function resetPlayer()
     end
 end
 
--- Coin Detection Tab
+local function startCoinDetection()
+    if coinDetectionThread then task.cancel(coinDetectionThread) end
+    
+    coinDetectionThread = task.spawn(function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local CoinCollected = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("CoinCollected")
+        
+        CoinCollected.OnClientEvent:Connect(function()
+            if coinDetectionEnabled then
+                coinCount = coinCount + 1
+                WindUI:Notify({ Title = "Scripterkiddo", Desc = "Coins collected this round: " .. coinCount .. "/" .. maxCoinsPerRound, Duration = 2 })
+                
+                if coinCount >= maxCoinsPerRound then
+                    resetPlayer()
+                    coinCount = 0
+                end
+            end
+        end)
+        
+        local RoundStart = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundStart")
+        RoundStart.OnClientEvent:Connect(function()
+            if coinDetectionEnabled then
+                coinCount = 0
+                WindUI:Notify({ Title = "Scripterkiddo", Desc = "Coin counter reset for new round", Duration = 2 })
+            end
+        end)
+    end)
+end
+
+local reportingInterval = "Disabled"
+local reportingThread = nil
+local webhookUrl = ""
+local webhookEnabled = false
+local startTime = 0
+
+-- */  Coin Detection Tab  /* --
 do
     local DetectionMainSection = Tabs.CoinDetectionTab:Section({ Title = "Scripterkiddo", Desc = "Track coins and auto-reset at 40", Box = true, BoxBorder = true, Opened = true })
     DetectionMainSection:Toggle({
@@ -2591,7 +2710,7 @@ do
     })
 end
 
--- Spawner Tab
+-- */  Spawner Tab  /* --
 do
     Tabs.Spawner:Paragraph({
         Title = 'Scripterkiddo',
@@ -2622,7 +2741,7 @@ do
     })
 end
 
--- End Round Tab
+-- */  End Round Tab  /* --
 do
     local ManualFlingSection = Tabs.EndRoundTab:Section({ Title = "Scripterkiddo", Desc = "Select a player and fling", Box = true, BoxBorder = true, Opened = true })
     Tabs.EndRoundTab:Dropdown({
@@ -2699,6 +2818,7 @@ CoinCollected.OnClientEvent:Connect(function(name, rightnow, maximum)
     end
 end)
 
+-- Reset on round start
 local RoundStart = game.ReplicatedStorage.Remotes.Gameplay.RoundStart
 RoundStart.OnClientEvent:Connect(function()
     if coinDetectionEnabled then
@@ -2709,6 +2829,7 @@ RoundStart.OnClientEvent:Connect(function()
     end
 end)
 
+-- Beachball dupe function
 local function dupeBeachballs(multiplier)
     local EventFrames = game:GetService("Players").LocalPlayer.PlayerGui.CrossPlatform.Christmas2025.Container.EventFrames
     
@@ -2733,7 +2854,7 @@ local function dupeBeachballs(multiplier)
     dupeAllValues()
 end
 
--- Event Items Tab
+-- */  Event Items Tab  /* --
 do
     local selectedMultiplier = 2
     local EventDupeSection = Tabs.BeachballsTab:Section({ Title = "Scripterkiddo", Desc = "Duplicate event coins", Box = true, BoxBorder = true, Opened = true })
@@ -2757,7 +2878,7 @@ do
     })
 end
 
--- Changelogs Tab
+-- */  Changelogs Tab  /* --
 do
     Tabs.ChangelogsTab:Section({ Title = "Scripterkiddo" })
 
@@ -2773,9 +2894,6 @@ Core Features:
 • Event Item Duplication system
 • Manual and Auto Fling controls
 • Discord webhook integration for coin tracking
-• ESP System with role highlighting
-• Aimbot with ping prediction
-• Sheriff auto-shoot tools
 
 Recent Updates:
 • Fixed autofarm to run infinitely without stopping
