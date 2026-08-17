@@ -1,6 +1,8 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ========== WINDUI IMPORT ==========
+local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua'))()
+
 -- ========== VARIABLES ==========
-local SCRIPT_VERSION = "3.4"
+local SCRIPT_VERSION = "3.3"
 local SCRIPT_AUTHOR = "789"
 local MY_IMAGE = "rbxassetid://121203053460330"
 local DISCORD_LINK = "https://discord.gg/gV6tsRaMKh"
@@ -51,7 +53,6 @@ local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = workspace.CurrentCamera
 
 -- ========== FEATURE VARIABLES ==========
 local currentSpeed = 16
@@ -133,84 +134,6 @@ local feedbackSentFlag = false
 local jerkToolAnimationId = 'rbxassetid://698251653'
 local jerkToolConnection = nil
 local jerkToolInstance = nil
-
--- ========== NEW FEATURES VARIABLES ==========
-local SavedCFrame = nil
-local SelectedPlayer = nil
-local FlingFailsafeActive = false
-local OriginalCFrameBeforeFling = nil
-local SafePlatform = nil
-local AntiFlingConnection = nil
-local SpinVelocity = nil
-local WasUnderground = false
-local PreFarmCFrame = nil
-local CollectedCoinsCount = 0
-local CoinFarmTimeLeft = 60
-local IsFlingingFromFarm = false
-local FlingDurationLeft = 12
-local lastShotTime = 0
-local IsGrabShooting = false
-local FakeBombCooldownActive = false
-local FakeBombCooldownTime = 22
-local canWallJump = true
-local lastWallHopTime = 0
-local OriginalFOV = Camera.FieldOfView
-local ActiveTracers = {}
-local FOVCircle = nil
-local IsGrabbing = false
-
--- ========== NEW SETTINGS ==========
-local LouisSettings = {
-    CameraAimbot = false,
-    HitboxExpander = false,
-    HitboxVisual = true,
-    TracersESP = false,
-    EspInnocent = true,
-    EspSheriff = true,
-    EspMurderer = true,
-    CoinESP = false,
-    AutoGrabGun = false,
-    TargetPart = "HumanoidRootPart",
-    HitboxSize = 20,
-    FOVSize = 150,
-    HideFOVCircle = false,
-    AutoFlingMurder = false,
-    AutoFlingSheriff = false,
-    CameraFOVEnabled = false,
-    CameraFOVValue = 70,
-    KillAuraEnabled = false,
-    KillAuraRadius = 15,
-    FakeBombExtEnabled = false,
-    CoinFarmEnabled = false,
-    CoinFarmTweenSpeed = 90,
-    CoinUpTweenSpeed = 50,
-    CoinMaxDistance = 300,
-    CoinFarmTimerValue = 1,
-    AntiVoid = true,
-    AntiFling = false,
-    FlingPower = 100,
-    SafeZoneEnabled = false,
-    JumpBoostEnabled = false,
-    JumpBoostValue = 35,
-    SilentAimEnabled = false,
-    AutoShootEnabled = false,
-    SilentAimType = "Normal",
-    AimbotType = "Instant",
-    AimbotSmoothingValue = 0.15,
-    FlingGrabTpDistance = 250,
-    AutoFlingAll = false,
-    FlingGrabTpMode = "Innocent",
-    AutoGrabAndShoot = false,
-    StretchResEnabled = false,
-    StretchResValue = 1.0,
-    WallHopDist = 2.5,
-    WHNormal = false,
-    WHInstant = false,
-    AimbotMethod = "Camera",
-    FakeBombAutoShoot = false,
-    AutoTeleportMap = true,
-    InvisibleEnabled = false
-}
 
 -- ========== HELPER FUNCTIONS ==========
 local function getHRP()
@@ -335,42 +258,6 @@ local function getSheriffPlayer()
         end
     end
     return nil
-end
-
-local function GetMM2Role(Player)
-    if not Player or not Player.Character then return "Innocent" end
-    local Character = Player.Character
-    local Backpack = Player:FindFirstChild("Backpack")
-    if Character:FindFirstChild("Knife") or (Backpack and Backpack:FindFirstChild("Knife")) then
-        return "Murderer"
-    elseif Character:FindFirstChild("Gun") or (Backpack and Backpack:FindFirstChild("Gun")) then
-        return "Sheriff"
-    end
-    return "Innocent"
-end
-
-local function GetTargetByRole(roleName)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 and GetMM2Role(p) == roleName then
-                return p
-            end
-        end
-    end
-    return nil
-end
-
-local function GetTargetBodyPart(character, partName)
-    if not character then return nil end
-    if partName == "Head" then
-        return character:FindFirstChild("Head")
-    elseif partName == "HumanoidRootPart" then
-        return character:FindFirstChild("HumanoidRootPart")
-    elseif partName == "Torso" then
-        return character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso") or character:FindFirstChild("LowerTorso")
-    end
-    return character:FindFirstChild("HumanoidRootPart")
 end
 
 -- ========== JERK TOOL ==========
@@ -1380,2409 +1267,53 @@ local function disableAutoKillAll()
     end
 end
 
--- ========== NEW: KILL AURA ==========
-local killAuraConnection = nil
-
-local function startKillAura()
-    if LouisSettings.KillAuraEnabled then return end
-    LouisSettings.KillAuraEnabled = true
-    
-    killAuraConnection = RunService.Heartbeat:Connect(function()
-        local character = LocalPlayer.Character
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-        if LouisSettings.KillAuraEnabled and character and root then
-            local knife = character:FindFirstChild("Knife")
-            if knife and GetMM2Role(LocalPlayer) == "Murderer" then
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                        local tRoot = p.Character.HumanoidRootPart
-                        local tHum = p.Character:FindFirstChildOfClass("Humanoid")
-                        if tHum and tHum.Health > 0 then
-                            local distance = (root.Position - tRoot.Position).Magnitude
-                            if distance <= LouisSettings.KillAuraRadius then
-                                pcall(function()
-                                    if firetouchinterest then
-                                        firetouchinterest(tRoot, knife.Handle, 0)
-                                        firetouchinterest(tRoot, knife.Handle, 1)
-                                    end
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopKillAura()
-    LouisSettings.KillAuraEnabled = false
-    if killAuraConnection then
-        killAuraConnection:Disconnect()
-        killAuraConnection = nil
-    end
-end
-
--- ========== NEW: AUTO GRAB GUN ==========
-local function ScanForDroppedGun()
-    for _, object in ipairs(workspace:GetDescendants()) do
-        if object and object.Parent then
-            if object.Name == "GunDrop" or (object:IsA("Tool") and object.Name == "Gun") then
-                local targetPart = object:IsA("BasePart") and object or object:FindFirstChildOfClass("BasePart")
-                if targetPart then return targetPart end
-            end
+local function findGunDrop()
+    for _, descendant in ipairs(workspace:GetDescendants()) do
+        if descendant.Name == "GunDrop" then
+            return descendant
         end
     end
     return nil
 end
 
-local autoGrabConnection = nil
-
-local function startAutoGrabGun()
-    LouisSettings.AutoGrabGun = true
-    if autoGrabConnection then return end
-    
-    autoGrabConnection = task.spawn(function()
-        while LouisSettings.AutoGrabGun do
-            local activeGun = ScanForDroppedGun()
-            if activeGun and not IsGrabbing then
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-                if root and humanoid and humanoid.Health > 0 then
-                    IsGrabbing = true
-                    local originalCFrame = root.CFrame
-                    local targetCFrame = activeGun.CFrame + Vector3.new(0, 1.5, 0)
-                    root.CFrame = targetCFrame
-                    local timeout = 0
-                    while timeout < 1.5 do
-                        local backpack = LocalPlayer:FindFirstChild("Backpack")
-                        if char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")) then
-                            break
-                        end
-                        root.CFrame = targetCFrame
-                        task.wait(0.05)
-                        timeout = timeout + 0.05
-                    end
-                    if char and char:FindFirstChild("HumanoidRootPart") then
-                        root.CFrame = originalCFrame
-                    end
-                    task.wait(0.3)
-                    IsGrabbing = false
-                end
-            end
-            task.wait(0.5)
-        end
-    end)
-end
-
-local function stopAutoGrabGun()
-    LouisSettings.AutoGrabGun = false
-    if autoGrabConnection then
-        task.cancel(autoGrabConnection)
-        autoGrabConnection = nil
-    end
-end
-
--- ========== NEW: GRAB GUN TELEPORT SHOOT ==========
-local function GrabGunTeleportShoot()
-    if IsGrabShooting then return end
-    IsGrabShooting = true
-    local activeGun = ScanForDroppedGun()
-    if not activeGun then
-        WindUI:Notify({ Title = "Grab & Shoot", Content = "No dropped gun found on map.", Duration = 2.5, Icon = "alert-circle" })
-        IsGrabShooting = false
-        return
-    end
+local function autoGrabGun()
+    local gun = findGunDrop()
     local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    if not root or not humanoid or humanoid.Health <= 0 then
-        WindUI:Notify({ Title = "Grab & Shoot", Content = "Character not ready or dead.", Duration = 2, Icon = "alert-circle" })
-        IsGrabShooting = false
-        return
-    end
-    local originalCFrame = root.CFrame
-    WindUI:Notify({ Title = "Grab & Shoot", Content = "Teleporting to dropped gun...", Duration = 1.5, Icon = "rocket" })
-    root.CFrame = activeGun.CFrame + Vector3.new(0, 1.5, 0)
-    local grabbed = false
-    local startTime = os.clock()
-    while os.clock() - startTime < 1.5 do
-        local backpack = LocalPlayer:FindFirstChild("Backpack")
-        if char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")) then
-            grabbed = true
-            break
-        end
-        root.CFrame = activeGun.CFrame + Vector3.new(0, 1.5, 0)
-        task.wait(0.05)
-    end
-    if grabbed then
-        WindUI:Notify({ Title = "Grab & Shoot", Content = "Gun obtained! Searching for Murderer...", Duration = 1.5, Icon = "check" })
-        local targetPlayer = GetTargetByRole("Murderer")
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetRoot = targetPlayer.Character.HumanoidRootPart
-            root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
-            task.wait(0.1)
-            local gun = char:FindFirstChild("Gun") or (LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Backpack:FindFirstChild("Gun"))
-            if gun and gun.Parent == LocalPlayer:FindFirstChild("Backpack") then
-                humanoid:EquipTool(gun)
-                task.wait(0.08)
-            end
-            local shootRemote = gun and gun:FindFirstChild("Shoot")
-            local shootGunRemote = gun and gun:FindFirstChild("ShootGun")
-            if shootRemote and shootRemote:IsA("RemoteEvent") then
-                shootRemote:FireServer(root.CFrame, CFrame.new(targetRoot.Position))
-            elseif shootGunRemote and shootGunRemote:IsA("RemoteFunction") then
-                shootGunRemote:InvokeServer(1, targetRoot.Position, "AH2")
-            end
-            WindUI:Notify({ Title = "Grab & Shoot", Content = "Shot successfully fired at Murderer!", Duration = 3, Icon = "check" })
-        else
-            WindUI:Notify({ Title = "Grab & Shoot", Content = "Murderer not found or already dead.", Duration = 2.5, Icon = "alert-circle" })
-            root.CFrame = originalCFrame
-        end
-    else
-        WindUI:Notify({ Title = "Grab & Shoot", Content = "Grab failed (weapon did not respond/timeout).", Duration = 2.5, Icon = "alert-circle" })
-        root.CFrame = originalCFrame
-    end
-    IsGrabShooting = false
-end
-
--- ========== NEW: AUTO GRAB & SHOOT LOOP ==========
-local autoGrabShootConnection = nil
-
-local function startAutoGrabAndShoot()
-    LouisSettings.AutoGrabAndShoot = true
-    if autoGrabShootConnection then return end
     
-    autoGrabShootConnection = task.spawn(function()
-        while LouisSettings.AutoGrabAndShoot do
-            local activeGun = ScanForDroppedGun()
-            if activeGun then
-                GrabGunTeleportShoot()
-                task.wait(1.5)
-            end
-            task.wait(0.1)
-        end
-    end)
-end
-
-local function stopAutoGrabAndShoot()
-    LouisSettings.AutoGrabAndShoot = false
-    if autoGrabShootConnection then
-        task.cancel(autoGrabShootConnection)
-        autoGrabShootConnection = nil
-    end
-end
-
--- ========== NEW: SILENT AIM ==========
-local function FireGunAtTarget()
-    local char = LocalPlayer.Character
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    local gun = char and char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun"))
     if not gun then
-        WindUI:Notify({ Title = "Silent Aim", Content = "Gun not found in Backpack or Character.", Duration = 2, Icon = "alert-circle" })
+        WindUI:Notify({ Title = "Auto Grab Gun", Content = "Gun not found on map!", Duration = 2, Icon = "alert-circle" })
         return
     end
-    local targetPlayer = GetTargetByRole("Murderer") or SelectedPlayer
-    local targetPart = targetPlayer and targetPlayer.Character and (GetTargetBodyPart(targetPlayer.Character, LouisSettings.TargetPart) or targetPlayer.Character:FindFirstChild("HumanoidRootPart"))
-    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-    if not targetPart or not myRoot then
-        WindUI:Notify({ Title = "Silent Aim", Content = "Target Murderer not found.", Duration = 2, Icon = "alert-circle" })
-        return
-    end
-    if os.clock() - lastShotTime < 0.35 then return end
-    lastShotTime = os.clock()
-    if gun.Parent == backpack then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:EquipTool(gun)
-            task.wait(0.05)
-        else
-            gun.Parent = char
-            task.wait(0.05)
-        end
-    end
-    local shootRemote = gun:FindFirstChild("Shoot")
-    local shootGunRemote = gun:FindFirstChild("ShootGun")
-    local targetPos = targetPart.Position
-    if LouisSettings.SilentAimType == "Instant" then
-        local ping = 0.05
-        pcall(function() ping = LocalPlayer:GetNetworkPing() end)
-        local distance = (myRoot.Position - targetPart.Position).Magnitude
-        local travelTime = distance / 230
-        targetPos = targetPart.Position + (targetPart.AssemblyLinearVelocity * (travelTime + ping))
-    end
-    if shootRemote and shootRemote:IsA("RemoteEvent") then
-        shootRemote:FireServer(myRoot.CFrame, CFrame.new(targetPos))
-        WindUI:Notify({ Title = "Silent Aim", Content = "Shooting -> " .. targetPlayer.DisplayName, Duration = 1.5, Icon = "target" })
-    elseif shootGunRemote and shootGunRemote:IsA("RemoteFunction") then
-        shootGunRemote:InvokeServer(1, targetPos, "AH2")
-        WindUI:Notify({ Title = "Silent Aim", Content = "Shooting -> " .. targetPlayer.DisplayName, Duration = 1.5, Icon = "target" })
-    else
-        WindUI:Notify({ Title = "Silent Aim", Content = "Shooting Remote not detected in Gun.", Duration = 2, Icon = "alert-circle" })
-    end
-    task.spawn(function()
-        task.wait(0.12)
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:UnequipTools()
-        elseif gun.Parent == char then
-            gun.Parent = backpack
-        end
-    end)
-end
-
--- ========== NEW: AIMBOT ==========
-local aimbotConnection = nil
-
-local function startAimbot()
-    LouisSettings.CameraAimbot = true
-    if aimbotConnection then return end
     
-    aimbotConnection = RunService.RenderStepped:Connect(function()
-        if not LouisSettings.CameraAimbot or not LocalPlayer.Character then return end
-        local HoldsGun = LocalPlayer.Character:FindFirstChild("Gun")
-        local HoldsKnife = LocalPlayer.Character:FindFirstChild("Knife")
-        if (HoldsGun and HoldsGun:IsA("Tool")) or (HoldsKnife and HoldsKnife:IsA("Tool")) then
-            local MyRole = GetMM2Role(LocalPlayer)
-            local targetPlayer = (MyRole == "Murderer") and GetTargetByRole("Sheriff") or GetTargetByRole("Murderer")
-            if targetPlayer and targetPlayer.Character then
-                local targetPart = GetTargetBodyPart(targetPlayer.Character, LouisSettings.TargetPart) or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if targetPart then
-                    if LouisSettings.AimbotMethod == "Camera" then
-                        if LouisSettings.AimbotType == "Instant" then
-                            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
-                        else
-                            local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
-                            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, LouisSettings.AimbotSmoothingValue)
-                        end
-                    elseif LouisSettings.AimbotMethod == "Character" then
-                        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            local lookPos = Vector3.new(targetPart.Position.X, root.Position.Y, targetPart.Position.Z)
-                            if LouisSettings.AimbotType == "Instant" then
-                                root.CFrame = CFrame.lookAt(root.Position, lookPos)
-                            else
-                                local targetCFrame = CFrame.lookAt(root.Position, lookPos)
-                                root.CFrame = root.CFrame:Lerp(targetCFrame, LouisSettings.AimbotSmoothingValue)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopAimbot()
-    LouisSettings.CameraAimbot = false
-    if aimbotConnection then
-        aimbotConnection:Disconnect()
-        aimbotConnection = nil
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        WindUI:Notify({ Title = "Auto Grab Gun", Content = "Character not found!", Duration = 2, Icon = "alert-circle" })
+        return
     end
-end
-
--- ========== NEW: WALLHOP ==========
-local wallhopConnection = nil
-
-local function startWallhop()
-    if wallhopConnection then return end
-    wallhopConnection = UserInputService.JumpRequest:Connect(function()
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-        if not character or not humanoid or not root then return end
-        if not canWallJump or (tick() - lastWallHopTime < 0.18) then return end
-        if not (LouisSettings.WHNormal or LouisSettings.WHInstant) then return end
+    
+    local attachPart = gun:IsA("BasePart") and gun or gun:FindFirstChildWhichIsA("BasePart", true)
+    if not attachPart then
+        WindUI:Notify({ Title = "Auto Grab Gun", Content = "Failed to find gun position!", Duration = 2, Icon = "alert-circle" })
+        return
+    end
+    
+    local success, err = pcall(function()
+        local hrp = char.HumanoidRootPart
+        local originalCFrame = hrp.CFrame
         
-        local params = RaycastParams.new()
-        params.FilterDescendantsInstances = {character}
-        params.FilterType = Enum.RaycastFilterType.Exclude
-        local isNearWall = false
-        for i = 0, 7 do
-            local angle = math.rad(i * 45)
-            local dir = (root.CFrame * CFrame.Angles(0, angle, 0)).LookVector
-            local r = Workspace:Raycast(root.Position, dir * LouisSettings.WallHopDist, params)
-            if r and r.Instance.CanCollide then
-                isNearWall = true
-                break
-            end
-        end
-        if isNearWall and humanoid.FloorMaterial == Enum.Material.Air then
-            lastWallHopTime = tick()
-            canWallJump = false
-            local jumpPowerBoost = humanoid.JumpPower > 0 and humanoid.JumpPower or 50
-            root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, jumpPowerBoost * 0.95, root.AssemblyLinearVelocity.Z)
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            if LouisSettings.WHInstant then
-                task.spawn(function()
-                    pcall(function()
-                        local angle = math.rad(15)
-                        Camera.CFrame = Camera.CFrame * CFrame.Angles(0, -angle, 0)
-                        RunService.RenderStepped:Wait()
-                        Camera.CFrame = Camera.CFrame * CFrame.Angles(0, angle * 2, 0)
-                        RunService.RenderStepped:Wait()
-                        Camera.CFrame = Camera.CFrame * CFrame.Angles(0, -angle, 0)
-                    end)
-                end)
-            elseif LouisSettings.WHNormal then
-                task.spawn(function()
-                    root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(-30), 0)
-                    task.wait(0.06)
-                    root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(30), 0)
-                end)
-            end
-            task.wait(0.18)
-            canWallJump = true
-        end
-    end)
-end
-
-local function stopWallhop()
-    if wallhopConnection then
-        wallhopConnection:Disconnect()
-        wallhopConnection = nil
-    end
-end
-
--- ========== NEW: FAKE BOMB ==========
-local function GetFakeBombTool()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("FakeBomb") then
-        return char.FakeBomb
-    end
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    if backpack then
-        if backpack:FindFirstChild("FakeBomb") then
-            return backpack.FakeBomb
-        end
-        local toys = backpack:FindFirstChild("Toys")
-        if toys and toys:FindFirstChild("FakeBomb") then
-            return toys.FakeBomb
-        end
-    end
-    return nil
-end
-
-local function TriggerFakeBombJump()
-    if FakeBombCooldownActive then
-        WindUI:Notify({ Title = "Fake Bomb", Content = "Please wait for the cooldown to expire!", Duration = 2, Icon = "alert-circle" })
-        return
-    end
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not char or not hum or not root or hum.Health <= 0 then
-        WindUI:Notify({ Title = "Fake Bomb", Content = "Character is not ready or dead.", Duration = 2, Icon = "alert-circle" })
-        return
-    end
-    local bomb = GetFakeBombTool()
-    if not bomb then
-        WindUI:Notify({ Title = "Fake Bomb", Content = "Fake Bomb not found in Backpack or Toys folder!", Duration = 3, Icon = "alert-circle" })
-        return
-    end
-    if bomb.Parent ~= char then
-        hum:EquipTool(bomb)
-        task.wait(0.05)
-    end
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    local currentPower = hum.UseJumpPower and hum.JumpPower or 50
-    pcall(function()
-        root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, currentPower * 1.25, root.AssemblyLinearVelocity.Z)
-    end)
-    local remote = bomb:FindFirstChild("Remote")
-    if remote and remote:IsA("RemoteEvent") then
-        remote:FireServer()
-    else
-        local deepRemote = bomb:FindFirstChild("Remote", true)
-        if deepRemote and deepRemote:IsA("RemoteEvent") then
-            deepRemote:FireServer()
-        end
-    end
-    if LouisSettings.FakeBombAutoShoot then
-        task.spawn(function()
-            task.wait(0.12)
-            FireGunAtTarget()
-        end)
-    end
-    task.spawn(function()
-        FakeBombCooldownActive = true
-        local countdown = FakeBombCooldownTime
-        while countdown > 0 do
-            task.wait(1)
-            countdown = countdown - 1
-        end
-        FakeBombCooldownActive = false
-    end)
-end
-
--- ========== NEW: SAFE ZONE ==========
-local function ToggleSafeZone(state)
-    LouisSettings.SafeZoneEnabled = state
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if state then
-        if not SafePlatform then
-            SafePlatform = Instance.new("Part")
-            SafePlatform.Size = Vector3.new(20, 1, 20)
-            SafePlatform.Position = Vector3.new(0, 1000, 0)
-            SafePlatform.Anchored = true
-            SafePlatform.CanCollide = true
-            SafePlatform.Parent = workspace
-        end
-        if root then
-            SavedCFrame = root.CFrame
-            root.CFrame = SafePlatform.CFrame * CFrame.new(0, 3, 0)
-        end
-    else
-        if SafePlatform then
-            SafePlatform:Destroy()
-            SafePlatform = nil
-        end
-        if SavedCFrame and root then
-            root.CFrame = SavedCFrame
-        end
-    end
-end
-
--- ========== NEW: ANTI-FLING ==========
-local function ToggleAntiFling(state)
-    LouisSettings.AntiFling = state
-    if AntiFlingConnection then
-        AntiFlingConnection:Disconnect()
-        AntiFlingConnection = nil
-    end
-    if state then
-        AntiFlingConnection = RunService.Stepped:Connect(function()
-            local backpack = LocalPlayer:FindFirstChild("Backpack")
-            local hasKnife = (backpack and backpack:FindFirstChild("Knife")) or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Knife"))
-            if hasKnife then return end
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    for _, part in ipairs(player.Character:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        elseif part:IsA("Accessory") then
-                            local handle = part:FindFirstChild("Handle")
-                            if handle and handle:IsA("BasePart") then
-                                handle.CanCollide = false
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end
-
--- ========== NEW: AUTO FLING ALL ==========
-local function ToggleAutoFlingAll(state)
-    LouisSettings.AutoFlingAll = state
-    if state then
-        task.spawn(function()
-            local originalPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
-            SavedCFrame = originalPos
-            while LouisSettings.AutoFlingAll do
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-                if not root or not humanoid or humanoid.Health <= 0 then
-                    task.wait(1)
-                else
-                    local flungSomeone = false
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                            local tRoot = p.Character.HumanoidRootPart
-                            local tHum = p.Character:FindFirstChildOfClass("Humanoid")
-                            if tHum and tHum.Health > 0 and tRoot.Position.Y > -80 and tRoot.AssemblyLinearVelocity.Magnitude < 150 then
-                                local orbitAngle = 0
-                                local startTime = os.clock()
-                                while os.clock() - startTime < 1.5 do
-                                    if not tRoot or not tHum or tHum.Health <= 0 or tRoot.AssemblyLinearVelocity.Magnitude > 150 or tRoot.Position.Y < -80 or not LouisSettings.AutoFlingAll then
-                                        break
-                                    end
-                                    orbitAngle = (orbitAngle + 1.2) % (math.pi * 2)
-                                    local radius = math.sin(orbitAngle * 4) * 1.5 + 2.0
-                                    local offset = Vector3.new(math.cos(orbitAngle) * radius, math.sin(orbitAngle * 2) * 1.2, math.sin(orbitAngle) * radius)
-                                    root.CFrame = CFrame.new(tRoot.Position + offset)
-                                    local multiplier = LouisSettings.FlingPower * 120
-                                    root.AssemblyLinearVelocity = Vector3.new(multiplier, multiplier, multiplier)
-                                    root.AssemblyAngularVelocity = Vector3.new(0, multiplier, 0)
-                                    task.wait(0.02)
-                                end
-                                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                                flungSomeone = true
-                                task.wait(0.1)
-                            end
-                        end
-                        if not LouisSettings.AutoFlingAll then break end
-                    end
-                    if not flungSomeone then
-                        task.wait(0.5)
-                    end
-                end
-                task.wait(0.1)
-            end
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                if originalPos then
-                    root.CFrame = originalPos
-                elseif SavedCFrame then
-                    root.CFrame = SavedCFrame
-                end
-            end
-        end)
-    end
-end
-
--- ========== NEW: COIN FARM ==========
-local function GetCoinContainer()
-    local container = Workspace:FindFirstChild("CoinContainer", true)
-    if container then return container end
-    return nil
-end
-
-local function FindCoinBasePart(coinServer)
-    if not coinServer then return nil end
-    if coinServer:IsA("BasePart") then return coinServer end
-    local mainCoin = coinServer:FindFirstChild("MainCoin", true)
-    if mainCoin and mainCoin:IsA("BasePart") then return mainCoin end
-    local coinPart = coinServer:FindFirstChild("Coin", true)
-    if coinPart and coinPart:IsA("BasePart") then return coinPart end
-    local anyPart = coinServer:FindFirstChildOfClass("BasePart") or coinServer:FindFirstChildOfClass("MeshPart")
-    if anyPart then return anyPart end
-    return nil
-end
-
-local ScannedCoins = {}
-local CollectedCoins = {}
-
-local function DeepScanWorkspaceCoins()
-    table.clear(ScannedCoins)
-    local container = GetCoinContainer()
-    if container then
-        for _, coin in ipairs(container:GetDescendants()) do
-            if coin and coin.Parent and (coin.Name:lower():find("coin") or coin.Name == "Coin_Server") then
-                local targetPart = FindCoinBasePart(coin)
-                if targetPart then
-                    table.insert(ScannedCoins, targetPart)
-                end
-            end
-        end
-    end
-end
-
-local function GetNearestCoin()
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    DeepScanWorkspaceCoins()
-    local closestCoin = nil
-    local shortestDistance = math.huge
-    for _, coinPart in ipairs(ScannedCoins) do
-        if coinPart and coinPart.Parent and not CollectedCoins[coinPart] then
-            local distance = (root.Position - coinPart.Position).Magnitude
-            if distance < shortestDistance and distance <= LouisSettings.CoinMaxDistance then
-                shortestDistance = distance
-                closestCoin = coinPart
-            end
-        end
-    end
-    return closestCoin
-end
-
-local currentCoinTween = nil
-
-local function CollectCoin(coinPart)
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-    if not root or not coinPart then return end
-    CollectedCoins[coinPart] = true
-    if coinPart.Parent then
-        CollectedCoins[coinPart.Parent] = true
-    end
-    local safeUnderCFrame = coinPart.CFrame * CFrame.new(0, -6.5, 0)
-    local grabCFrame = coinPart.CFrame
-    local distance = (root.Position - safeUnderCFrame.Position).Magnitude
-    local speed = LouisSettings.CoinUpTweenSpeed or 90
-    local tweenTime = distance / speed
-    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-    root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-    root.Anchored = true
-    if currentCoinTween then
-        pcall(function() currentCoinTween:Cancel() end)
-    end
-    local tweenInfo1 = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
-    currentCoinTween = TweenService:Create(root, tweenInfo1, {CFrame = safeUnderCFrame})
-    currentCoinTween:Play()
-    local completed = false
-    local conn
-    conn = currentCoinTween.Completed:Connect(function()
-        completed = true
-        if conn then conn:Disconnect() end
-    end)
-    while not completed and LouisSettings.CoinFarmEnabled do
-        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        task.wait()
-    end
-    if conn then conn:Disconnect() end
-    if LouisSettings.CoinFarmEnabled and coinPart and coinPart.Parent then
-        for _, child in ipairs(character:GetDescendants()) do
-            if child:IsA("BasePart") then
-                child.CanCollide = false
-            end
-        end
-        local upSpeed = LouisSettings.CoinUpTweenSpeed or 50
-        local upTweenTime = math.clamp(6.5 / upSpeed, 0.05, 0.5)
-        root.Anchored = true
-        local upTween = TweenService:Create(root, TweenInfo.new(upTweenTime, Enum.EasingStyle.Linear), {CFrame = grabCFrame})
-        upTween:Play()
-        upTween.Completed:Wait()
-        root.Anchored = false
-        local startTime = os.clock()
-        local initiallyExists = (coinPart and coinPart.Parent) and true or false
-        while coinPart and coinPart.Parent and (os.clock() - startTime < 0.35) and LouisSettings.CoinFarmEnabled do
-            root.CFrame = grabCFrame
-            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.01)
-        end
-        root.Anchored = true
-        local downTween = TweenService:Create(root, TweenInfo.new(upTweenTime, Enum.EasingStyle.Linear), {CFrame = safeUnderCFrame})
-        downTween:Play()
-        downTween.Completed:Wait()
+        hrp.CFrame = attachPart.CFrame
         task.wait(0.15)
-        if initiallyExists and (not coinPart or not coinPart.Parent) then
-            CollectedCoinsCount = CollectedCoinsCount + 1
-        end
-    end
-    if currentCoinTween then
-        currentCoinTween:Cancel()
-    end
-    root.Anchored = false
-    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-    task.wait(0.05)
-end
-
-local coinFarmLoop = nil
-
-local function startCoinFarm()
-    LouisSettings.CoinFarmEnabled = true
-    CoinFarmTimeLeft = LouisSettings.CoinFarmTimerValue * 60
-    IsFlingingFromFarm = false
-    
-    if coinFarmLoop then return end
-    
-    coinFarmLoop = task.spawn(function()
-        while LouisSettings.CoinFarmEnabled do
-            if not IsFlingingFromFarm then
-                local nearest = GetNearestCoin()
-                if nearest then
-                    if CoinFarmTimeLeft > 0 then
-                        CoinFarmTimeLeft = CoinFarmTimeLeft - 1
-                    else
-                        IsFlingingFromFarm = true
-                        FlingDurationLeft = 12
-                        WindUI:Notify({ Title = "Farm Fling", Content = "Time is up! Flinging Murderer for 12 seconds.", Duration = 3, Icon = "rocket" })
-                    end
-                end
-            else
-                if FlingDurationLeft > 0 then
-                    FlingDurationLeft = FlingDurationLeft - 1
-                    local murderer = GetTargetByRole("Murderer")
-                    if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
-                        local char = LocalPlayer.Character
-                        local root = char and char:FindFirstChild("HumanoidRootPart")
-                        if root then
-                            local mRoot = murderer.Character.HumanoidRootPart
-                            local multiplier = LouisSettings.FlingPower * 120
-                            root.CFrame = mRoot.CFrame * CFrame.new(math.random(-1, 1) * 0.1, 0, math.random(-1, 1) * 0.1)
-                            root.AssemblyLinearVelocity = Vector3.new(multiplier, multiplier, multiplier)
-                            root.AssemblyAngularVelocity = Vector3.new(0, multiplier, 0)
-                        end
-                    end
-                else
-                    IsFlingingFromFarm = false
-                    CoinFarmTimeLeft = LouisSettings.CoinFarmTimerValue * 60
-                    WindUI:Notify({ Title = "Farm Resumed", Content = "Fling completed! Resuming coin collection.", Duration = 3, Icon = "coins" })
-                end
-            end
-            
-            if not IsFlingingFromFarm then
-                local nearest = GetNearestCoin()
-                if nearest then
-                    CollectCoin(nearest)
-                else
-                    local character = LocalPlayer.Character
-                    local root = character and character:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                        root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                        root.Anchored = true
-                    end
-                    task.wait(0.25)
-                end
-            end
-            task.wait(0.5)
-        end
-    end)
-end
-
-local function stopCoinFarm()
-    LouisSettings.CoinFarmEnabled = false
-    if coinFarmLoop then
-        task.cancel(coinFarmLoop)
-        coinFarmLoop = nil
-    end
-end
-
--- ========== NEW: AUTO TELEPORT TO MAP ==========
-local function GetMapSpawnPoint()
-    local normal = Workspace:FindFirstChild("Normal")
-    local map = normal and normal:FindFirstChild("Map")
-    if map then
-        local spawns = map:FindFirstChild("SpawnPoints") or map:FindFirstChild("Spawns") or map:FindFirstChild("PlayerSpawn")
-        if spawns then
-            local children = spawns:GetChildren()
-            if #children > 0 then
-                return children[math.random(1, #children)]
-            end
-        end
-    end
-    for _, child in ipairs(Workspace:GetChildren()) do
-        if child:IsA("Model") or child:IsA("Folder") then
-            local nameLower = child.Name:lower()
-            if nameLower:find("map") or nameLower == "normal" then
-                local spawns = child:FindFirstChild("SpawnPoints", true) or child:FindFirstChild("Spawns", true) or child:FindFirstChild("PlayerSpawn", true)
-                if spawns then
-                    local children = spawns:GetChildren()
-                    if #children > 0 then
-                        return children[math.random(1, #children)]
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function TeleportToActiveMap()
-    if not LouisSettings.AutoTeleportMap then return end
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    if not root or not humanoid or humanoid.Health <= 0 then return end
-    local spawnPart = GetMapSpawnPoint()
-    if spawnPart then
-        task.wait(4.5)
-        if char and root and root.Parent and humanoid.Health > 0 then
-            local originalAntiVoid = LouisSettings.AntiVoid
-            LouisSettings.AntiVoid = false
-            root.Anchored = false
-            root.CFrame = spawnPart.CFrame * CFrame.new(0, 3, 0)
-            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            task.delay(3.0, function()
-                LouisSettings.AntiVoid = originalAntiVoid
-            end)
-        end
-    end
-end
-
-local function SetupAutoTeleport()
-    local function CheckAndTeleport()
-        task.wait(2)
-        TeleportToActiveMap()
-    end
-    
-    local normalFolder = Workspace:FindFirstChild("Normal")
-    if normalFolder then
-        normalFolder.DescendantAdded:Connect(function(desc)
-            if desc.Name == "SpawnPoints" or desc.Name == "Spawns" or desc.Name == "PlayerSpawn" then
-                CheckAndTeleport()
-            end
-        end)
-    end
-    
-    Workspace.ChildAdded:Connect(function(child)
-        if child.Name == "Normal" then
-            task.wait(1.5)
-            CheckAndTeleport()
-        end
-    end)
-end
-
--- ========== NEW: STRETCHED RESOLUTION ==========
-local stretchConnection = nil
-
-local function startStretchRes()
-    LouisSettings.StretchResEnabled = true
-    if stretchConnection then return end
-    
-    stretchConnection = RunService.RenderStepped:Connect(function()
-        if LouisSettings.StretchResEnabled and LouisSettings.StretchResValue then
-            Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, LouisSettings.StretchResValue, 0, 0, 0, 1)
-        end
-    end)
-end
-
-local function stopStretchRes()
-    LouisSettings.StretchResEnabled = false
-    if stretchConnection then
-        stretchConnection:Disconnect()
-        stretchConnection = nil
-    end
-end
-
--- ========== NEW: SAVE/LOAD POSITION ==========
-local function SavePosition()
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if root then SavedCFrame = root.CFrame end
-end
-
-local function LoadSavedPosition()
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if root and SavedCFrame then root.CFrame = SavedCFrame end
-end
-
--- ========== NEW: EARLY ROLE DETECTION ==========
-local earlyDetectConnections = {}
-
-local function MonitorRolesForEarlyDetect(player)
-    if player == LocalPlayer then return end
-    local function onChildAdded(child)
-        if not LouisSettings.EarlyRoleDetect then return end
-        if child:IsA("Tool") then
-            if child.Name == "Knife" then
-                WindUI:Notify({ Title = "Role Detected", Content = player.DisplayName .. " is MURDERER!", Duration = 5, Icon = "alert-circle" })
-            elseif child.Name == "Gun" then
-                WindUI:Notify({ Title = "Role Detected", Content = player.DisplayName .. " is SHERIFF!", Duration = 5, Icon = "alert-circle" })
-            end
-        end
-    end
-    local function setupCharacter(char)
-        table.insert(earlyDetectConnections, char.ChildAdded:Connect(onChildAdded))
-        for _, child in ipairs(char:GetChildren()) do
-            onChildAdded(child)
-        end
-    end
-    table.insert(earlyDetectConnections, player.CharacterAdded:Connect(setupCharacter))
-    if player.Character then
-        setupCharacter(player.Character)
-    end
-end
-
--- ========== UPDATE PLAYER LIST ==========
-local function updatePlayerList(section)
-    if not section or not section.container then
-        return
-    end
-    
-    for _, child in pairs(section.container:GetChildren()) do
-        if child:IsA("ImageButton") and child.Name == "PlayerButton" then
-            child:Destroy()
-        end
-    end
-    
-    local playerCount = 0
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            playerCount = playerCount + 1
-            local role = getPlayerRole(player)
-            local roleIcon = (role == "Murderer" and "🔴 " or role == "Sheriff" and "🔵 " or "⚪ ")
-            
-            section:Button({
-                Title = roleIcon .. player.Name .. (role ~= "Normal" and " (" .. role .. ")" or ""),
-                Callback = function()
-                    local success = teleportToPlayer(player)
-                    if success then
-                        WindUI:Notify({ Title = "Teleport", Content = "Teleported to " .. player.Name, Duration = 2, Icon = "map-pin" })
-                    else
-                        WindUI:Notify({ Title = "Error", Content = "Failed to teleport", Duration = 2, Icon = "alert-circle" })
-                    end
-                end
-            })
-        end
-    end
-    
-    if playerCount == 0 then
-        section:Paragraph({
-            Title = "Information",
-            Text = "No other players on server"
-        })
-    end
-end
-
--- ========== CREATE MAIN WINDOW ==========
-local Window = WindUI:CreateWindow({
-    Title   = "Scripterkiddo",
-    Author  = "by " .. SCRIPT_AUTHOR,
-    Folder  = "WAQURYHUB",
-    Icon    = MY_IMAGE,
-    Theme   = "Violet",
-    Size    = UDim2.fromOffset(750, 550),
-    MinSize = Vector2.new(560, 350),
-    MaxSize = Vector2.new(900, 600),
-    ToggleKey  = Enum.KeyCode.RightShift,
-    Resizable  = true,
-    AutoScale  = true,
-    NewElements = true,
-    HideSearchBar = false,
-    ScrollBarEnabled = false,
-    SideBarWidth = 200,
-    Topbar = {
-        Height      = 44,
-        ButtonsType = "Mac",
-    },
-    OpenButton = {
-        Title    = "Scripterkiddo",
-        Icon     = "rbxassetid://86095931766827",
-        CornerRadius = UDim.new(1,0),
-        StrokeThickness = 2,
-        Enabled  = true,
-        Draggable = true,
-        OnlyMobile = false,
-        Scale = 1,
-        Color = ColorSequence.new(Color3.fromHex("#6A5ACD"), Color3.fromHex("#9370DB"))
-    },
-})
-
-Window:SetBackgroundImage(MY_IMAGE)
-Window:SetBackgroundImageTransparency(0.3)
-
-Window:Tag({
-    Title = "v" .. SCRIPT_VERSION,
-    Color = Color3.fromRGB(255, 105, 180),
-})
-
-task.wait(0.5)
-
-local topbar = Window.UIElements.Main:FindFirstChild("Topbar")
-if topbar then
-    local titleObject = topbar:FindFirstChild("Title")
-    if titleObject then
-        titleObject.TextColor3 = Color3.fromRGB(255, 105, 180)
-        titleObject.Text = "Scripterkiddo - v" .. SCRIPT_VERSION
-    end
-end
-
--- ========== TABS ==========
-local mainTab = Window:Tab({ Title = "Main", Icon = "house" })
-local movementTab = Window:Tab({ Title = "Movement", Icon = "move" })
-local combatTab = Window:Tab({ Title = "Combat", Icon = "sword" })
-local teleportTab = Window:Tab({ Title = "Teleports", Icon = "map-pin" })
-local visualTab = Window:Tab({ Title = "Visual", Icon = "eye" })
-local espTab = Window:Tab({ Title = "ESP", Icon = "target" })
-local farmTab = Window:Tab({ Title = "Farm", Icon = "coins" })
-local settingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
-local infoTab = Window:Tab({ Title = "Info", Icon = "info" })
-
-WindUI:Notify({
-    Title = "Loading Script...",
-    Content = "Script is loading please wait...",
-    Duration = 3,
-    Icon = "loader"
-})
-task.wait(3)
-
--- ========== GUI CREATION ==========
-
--- ===== MAIN =====
-local mainSection = mainTab:Section({ Title = "Welcome to Scripterkiddo!", Icon = MY_IMAGE })
-
-mainSection:Paragraph({
-    Title = "Script Information",
-    Text = "Scripterkiddo v" .. SCRIPT_VERSION .. "\n\n" ..
-           "Developer: " .. SCRIPT_AUTHOR .. "\n" ..
-           "Game: Murder Mystery 2\n" ..
-           "Status: Updated\n\n" ..
-           "Main Features:\n" ..
-           "- Full cheat suite for MM2\n" ..
-           "- ESP with role detection\n" ..
-           "- Auto coin farming with fling timer\n" ..
-           "- Aimbot, Silent Aim, Kill Aura\n" ..
-           "- Teleports and fling\n" ..
-           "- Wallhop, Fake Bomb jump\n" ..
-           "- And much more!\n\n" ..
-           "Join Discord for support!"
-})
-
-mainSection:Button({
-    Title = "Join Discord",
-    Desc = "Click to copy Discord server link",
-    Icon = "brands-discord",
-    Callback = function()
-        setclipboard(DISCORD_LINK)
-        WindUI:Notify({
-            Title = "Discord",
-            Content = "Link copied to clipboard!",
-            Duration = 3,
-            Icon = "check"
-        })
-    end
-})
-
-mainSection:Paragraph({
-    Title = "Discord Server",
-    Text = "Link: " .. DISCORD_LINK .. "\n\n" ..
-           "Join for:\n" ..
-           "- Getting updates\n" ..
-           "- Support and help\n" ..
-           "- Chat with other users"
-})
-
--- ===== MOVEMENT =====
-local movementSection = movementTab:Section({ Title = "Movement", Icon = "move" })
-
-movementSection:Toggle({
-    Title = "Speed",
-    Value = false,
-    Callback = function(state)
-        speedEnabled = state
-        if speedEnabled then
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.WalkSpeed = currentSpeed end
-            end
-        else
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.WalkSpeed = 16 end
-            end
-        end
-    end
-})
-
-movementSection:Slider({
-    Title = "Speed Value",
-    Value = { Min = 1, Max = 1000, Default = 16 },
-    Callback = function(value)
-        currentSpeed = value
-        if speedEnabled then
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.WalkSpeed = currentSpeed end
-            end
-        end
-    end
-})
-
-movementSection:Toggle({
-    Title = "Jump Power",
-    Value = false,
-    Callback = function(state)
-        jumpEnabled = state
-        if jumpEnabled then
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.JumpPower = currentJumpPower end
-            end
-        else
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.JumpPower = 50 end
-            end
-        end
-    end
-})
-
-movementSection:Slider({
-    Title = "Jump Power Value",
-    Value = { Min = 1, Max = 500, Default = 50 },
-    Callback = function(value)
-        currentJumpPower = value
-        if jumpEnabled then
-            local character = LocalPlayer.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.JumpPower = currentJumpPower end
-            end
-        end
-    end
-})
-
-movementSection:Toggle({
-    Title = "Noclip",
-    Value = false,
-    Callback = function(state)
-        if state then startNoclip() else stopNoclip() end
-    end
-})
-
-movementSection:Toggle({
-    Title = "Infinite Jump",
-    Value = false,
-    Callback = function(state)
-        if state then enableInfiniteJump() else disableInfiniteJump() end
-    end
-})
-
-movementSection:Toggle({
-    Title = "Anti-AFK",
-    Value = false,
-    Callback = function(state)
-        if state then startAntiAfk() else stopAntiAfk() end
-    end
-})
-
--- ===== JUMP BOOST =====
-movementSection:Toggle({
-    Title = "Jump Boost (Air Speed)",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.JumpBoostEnabled = state
-        if state then
-            WindUI:Notify({ Title = "Jump Boost", Content = "Jump boost enabled! Speed: " .. LouisSettings.JumpBoostValue, Duration = 2, Icon = "move" })
-        end
-    end
-})
-
-movementSection:Slider({
-    Title = "Jump Boost Speed",
-    Value = { Min = 16, Max = 120, Default = 35 },
-    Callback = function(value)
-        LouisSettings.JumpBoostValue = value
-    end
-})
-
--- ===== FLY =====
-local flySection = movementTab:Section({ Title = "Flight", Icon = "plane" })
-
-flySection:Toggle({
-    Title = "Fly Mode (Press Q)",
-    Value = false,
-    Callback = function(state)
-        if state then startFly() else stopFly() end
-    end
-})
-
-flySection:Slider({
-    Title = "Fly Speed",
-    Value = { Min = CONFIG.FLY.MIN_SPEED, Max = 500, Default = CONFIG.FLY.DEFAULT_SPEED },
-    Callback = function(value)
-        setFlySpeed(value)
-        if flying then
-            stopFly()
-            task.wait(0.1)
-            startFly()
-        end
-    end
-})
-
--- ===== SPIN =====
-local spinSection = movementTab:Section({ Title = "Spin", Icon = "rotate-cw" })
-
-spinSection:Toggle({
-    Title = "Spin Mode (Press Z)",
-    Value = false,
-    Callback = function(state)
-        if state then startSpin() else stopSpin() end
-    end
-})
-
-spinSection:Slider({
-    Title = "Spin Speed",
-    Value = { Min = 1, Max = 100, Default = 50 },
-    Callback = function(value)
-        setSpinSpeed(value)
-    end
-})
-
-spinSection:Paragraph({
-    Title = "Information",
-    Text = "Character will spin in place\nPress Z for quick toggle\nHigher speed = faster spinning"
-})
-
--- ===== AUTO BHOP =====
-local bhopSection = movementTab:Section({ Title = "Auto Bhop", Icon = "activity" })
-
-bhopSection:Toggle({
-    Title = "Auto Bhop (Press B)",
-    Value = false,
-    Callback = function(state)
-        if state then enableAutoBhop() else disableAutoBhop() end
-    end
-})
-
-bhopSection:Paragraph({
-    Title = "Information",
-    Text = "Automatically jumps when landing\nCreates bhop effect\nPress B for quick toggle"
-})
-
--- ===== WALLHOP =====
-local wallhopSection = movementTab:Section({ Title = "Wallhop", Icon = "wall" })
-
-wallhopSection:Toggle({
-    Title = "Wallhop Normal",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.WHNormal = state
-        if state then
-            LouisSettings.WHInstant = false
-            startWallhop()
-            WindUI:Notify({ Title = "Wallhop", Content = "Wallhop Normal enabled!", Duration = 2, Icon = "wall" })
-        else
-            if not LouisSettings.WHInstant then stopWallhop() end
-        end
-    end
-})
-
-wallhopSection:Toggle({
-    Title = "Wallhop Instant",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.WHInstant = state
-        if state then
-            LouisSettings.WHNormal = false
-            startWallhop()
-            WindUI:Notify({ Title = "Wallhop", Content = "Wallhop Instant enabled!", Duration = 2, Icon = "wall" })
-        else
-            if not LouisSettings.WHNormal then stopWallhop() end
-        end
-    end
-})
-
-wallhopSection:Slider({
-    Title = "Wallhop Distance",
-    Value = { Min = 1, Max = 15, Default = 3 },
-    Callback = function(value)
-        LouisSettings.WallHopDist = value
-    end
-})
-
--- ===== FAKE BOMB =====
-local bombSection = movementTab:Section({ Title = "Fake Bomb Jump", Icon = "bomb" })
-
-bombSection:Button({
-    Title = "Trigger Fake Bomb Jump",
-    Callback = function()
-        TriggerFakeBombJump()
-    end
-})
-
-bombSection:Toggle({
-    Title = "Fake Bomb Auto Shoot",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.FakeBombAutoShoot = state
-    end
-})
-
-bombSection:Paragraph({
-    Title = "Information",
-    Text = "Uses FakeBomb tool to launch you up\n22 second cooldown\nAuto-shoot option fires at Murderer"
-})
-
--- ===== COMBAT =====
-local combatSection = combatTab:Section({ Title = "Murderer", Icon = "sword" })
-
-combatSection:Toggle({
-    Title = "Auto Kill All",
-    Value = false,
-    Callback = function(state)
-        if state then enableAutoKillAll() else disableAutoKillAll() end
-    end
-})
-
--- ===== KILL AURA =====
-combatSection:Toggle({
-    Title = "Kill Aura",
-    Value = false,
-    Callback = function(state)
-        if state then startKillAura() else stopKillAura() end
-    end
-})
-
-combatSection:Slider({
-    Title = "Kill Aura Radius",
-    Value = { Min = 5, Max = 50, Default = 15 },
-    Callback = function(value)
-        LouisSettings.KillAuraRadius = value
-    end
-})
-
--- ===== SILENT AIM =====
-local silentAimSection = combatTab:Section({ Title = "Silent Aim", Icon = "target" })
-
-silentAimSection:Toggle({
-    Title = "Silent Aim",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.SilentAimEnabled = state
-        if state then
-            WindUI:Notify({ Title = "Silent Aim", Content = "Silent Aim enabled!", Duration = 2, Icon = "target" })
-        end
-    end
-})
-
-silentAimSection:Toggle({
-    Title = "Auto Shoot",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.AutoShootEnabled = state
-    end
-})
-
-silentAimSection:Dropdown({
-    Title = "Silent Aim Mode",
-    Options = {"Normal", "Instant", "OP"},
-    Default = 1,
-    Callback = function(value)
-        LouisSettings.SilentAimType = value
-    end
-})
-
-silentAimSection:Button({
-    Title = "Fire Gun at Murderer",
-    Callback = function()
-        FireGunAtTarget()
-    end
-})
-
--- ===== AIMBOT =====
-local aimbotSection = combatTab:Section({ Title = "Aimbot", Icon = "crosshair" })
-
-aimbotSection:Toggle({
-    Title = "Aimbot",
-    Value = false,
-    Callback = function(state)
-        if state then startAimbot() else stopAimbot() end
-    end
-})
-
-aimbotSection:Dropdown({
-    Title = "Aimbot Method",
-    Options = {"Camera", "Character"},
-    Default = 1,
-    Callback = function(value)
-        LouisSettings.AimbotMethod = value
-    end
-})
-
-aimbotSection:Dropdown({
-    Title = "Aimbot Type",
-    Options = {"Normal", "Instant"},
-    Default = 2,
-    Callback = function(value)
-        LouisSettings.AimbotType = value
-    end
-})
-
-aimbotSection:Dropdown({
-    Title = "Target Part",
-    Options = {"Head", "HumanoidRootPart", "Torso"},
-    Default = 2,
-    Callback = function(value)
-        LouisSettings.TargetPart = value
-    end
-})
-
-aimbotSection:Slider({
-    Title = "Aimbot Smoothing",
-    Value = { Min = 1, Max = 100, Default = 15 },
-    Callback = function(value)
-        LouisSettings.AimbotSmoothingValue = value / 100
-    end
-})
-
-aimbotSection:Slider({
-    Title = "FOV Size",
-    Value = { Min = 50, Max = 400, Default = 150 },
-    Callback = function(value)
-        LouisSettings.FOVSize = value
-    end
-})
-
--- ===== AUTO GRAB GUN =====
-local gunSection = combatTab:Section({ Title = "Gun Drop", Icon = "target" })
-
-gunSection:Toggle({
-    Title = "Auto Grab Gun",
-    Value = false,
-    Callback = function(state)
-        if state then startAutoGrabGun() else stopAutoGrabGun() end
-    end
-})
-
-gunSection:Button({
-    Title = "Manual Grab Gun",
-    Callback = function()
-        local activeGun = ScanForDroppedGun()
-        if activeGun then
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-            if root and humanoid and humanoid.Health > 0 and not IsGrabbing then
-                IsGrabbing = true
-                local originalCFrame = root.CFrame
-                root.CFrame = activeGun.CFrame + Vector3.new(0, 1.5, 0)
-                task.wait(0.3)
-                root.CFrame = originalCFrame
-                IsGrabbing = false
-                WindUI:Notify({ Title = "Grab Gun", Content = "Gun grabbed successfully!", Duration = 2, Icon = "check" })
-            end
-        else
-            WindUI:Notify({ Title = "Grab Gun", Content = "No dropped gun found!", Duration = 2, Icon = "alert-circle" })
-        end
-    end
-})
-
-gunSection:Toggle({
-    Title = "Auto Grab & Shoot",
-    Value = false,
-    Callback = function(state)
-        if state then startAutoGrabAndShoot() else stopAutoGrabAndShoot() end
-    end
-})
-
-gunSection:Button({
-    Title = "Grab & Shoot Now",
-    Callback = function()
-        GrabGunTeleportShoot()
-    end
-})
-
-gunSection:Paragraph({
-    Title = "Information",
-    Text = "Auto Grab Gun - teleports to dropped gun\nAuto Grab & Shoot - grabs gun and shoots Murderer"
-})
-
--- ===== FLING =====
-local flingSection = combatTab:Section({ Title = "Fling", Icon = "rocket" })
-
-flingSection:Button({
-    Title = "Fling Murderer",
-    Callback = function()
-        flingMurderer()
-    end
-})
-
-flingSection:Button({
-    Title = "Fling Sheriff",
-    Callback = function()
-        flingSheriff()
-    end
-})
-
-flingSection:Button({
-    Title = "Stop Fling",
-    Callback = function()
-        stopFling()
-    end
-})
-
-flingSection:Paragraph({
-    Title = "Information",
-    Text = "Fling throws player across the map\n\nFling Murderer - fling the killer\nFling Sheriff - fling the sheriff\nStop Fling - stop flinging"
-})
-
--- ===== FLING ON TOUCH =====
-local touchFlingSection = combatTab:Section({ Title = "Fling on Touch", Icon = "zap" })
-
-touchFlingSection:Toggle({
-    Title = "Auto Fling on Touch (Press C)",
-    Value = false,
-    Callback = function(state)
-        if state then startFlingOnTouch() else stopFlingOnTouch() end
-    end
-})
-
-touchFlingSection:Slider({
-    Title = "Fling Power",
-    Value = { Min = 1, Max = 200, Default = 100 },
-    Callback = function(value)
-        LouisSettings.FlingPower = value
-    end
-})
-
-touchFlingSection:Paragraph({
-    Title = "Information",
-    Text = "Automatically flings any player\nwho comes within " .. CONFIG.FLING.DISTANCE .. " studs of you\nPress C for quick toggle"
-})
-
--- ===== ANTI-FLING =====
-touchFlingSection:Toggle({
-    Title = "Anti-Fling",
-    Value = false,
-    Callback = function(state)
-        ToggleAntiFling(state)
-        if state then
-            WindUI:Notify({ Title = "Anti-Fling", Content = "Anti-Fling enabled!", Duration = 2, Icon = "shield" })
-        end
-    end
-})
-
--- ===== AUTO FLING ALL =====
-touchFlingSection:Toggle({
-    Title = "Auto Fling All Players",
-    Value = false,
-    Callback = function(state)
-        ToggleAutoFlingAll(state)
-        if state then
-            WindUI:Notify({ Title = "Auto Fling All", Content = "Flinging all players!", Duration = 2, Icon = "rocket" })
-        end
-    end
-})
-
--- ===== SAFE ZONE =====
-local safeSection = combatTab:Section({ Title = "Safe Zone", Icon = "shield" })
-
-safeSection:Toggle({
-    Title = "Safe Zone Teleport",
-    Value = false,
-    Callback = function(state)
-        ToggleSafeZone(state)
-        if state then
-            WindUI:Notify({ Title = "Safe Zone", Content = "Teleported to safe zone!", Duration = 2, Icon = "shield" })
-        else
-            WindUI:Notify({ Title = "Safe Zone", Content = "Returned to original position", Duration = 2, Icon = "shield" })
-        end
-    end
-})
-
-safeSection:Button({
-    Title = "Save Position",
-    Callback = function()
-        SavePosition()
-        WindUI:Notify({ Title = "Position Saved", Content = "Current position saved!", Duration = 2, Icon = "check" })
-    end
-})
-
-safeSection:Button({
-    Title = "Load Position",
-    Callback = function()
-        LoadSavedPosition()
-        WindUI:Notify({ Title = "Position Loaded", Content = "Loaded saved position!", Duration = 2, Icon = "check" })
-    end
-})
-
-safeSection:Paragraph({
-    Title = "Information",
-    Text = "Safe Zone teleports you to a safe platform\nSave/Load positions for quick teleport"
-})
-
--- ===== TELEPORTS =====
-local teleportSection = teleportTab:Section({ Title = "Quick Teleports", Icon = "rocket" })
-
-teleportSection:Button({
-    Title = "Teleport to Murderer",
-    Callback = function()
-        teleportToMurderer()
-    end
-})
-
-teleportSection:Button({
-    Title = "Teleport to Sheriff",
-    Callback = function()
-        teleportToSheriff()
-    end
-})
-
-local mapSection = teleportTab:Section({ Title = "Map Teleports", Icon = "map" })
-
-mapSection:Button({
-    Title = "Teleport to Lobby",
-    Callback = function()
-        teleportToLobby()
-    end
-})
-
-mapSection:Button({
-    Title = "Teleport to Voting Room",
-    Callback = function()
-        teleportToVotingRoom()
-    end
-})
-
-mapSection:Button({
-    Title = "Teleport to Map",
-    Callback = function()
-        teleportToMap()
-    end
-})
-
-mapSection:Button({
-    Title = "Teleport Above Map",
-    Callback = function()
-        teleportAboveMap()
-    end
-})
-
--- ===== AUTO TELEPORT MAP =====
-mapSection:Toggle({
-    Title = "Auto Teleport to Map",
-    Value = true,
-    Callback = function(state)
-        LouisSettings.AutoTeleportMap = state
-        if state then
-            WindUI:Notify({ Title = "Auto Teleport", Content = "Auto teleport to map enabled!", Duration = 2, Icon = "map" })
-        end
-    end
-})
-
--- ===== PLAYERS =====
-local playerSection = teleportTab:Section({ Title = "Teleport to Player", Icon = "users" })
-
-playerSection:Button({
-    Title = "Refresh Player List",
-    Callback = function()
-        updatePlayerList(playerSection)
-        WindUI:Notify({ Title = "Updated", Content = "Player list refreshed", Duration = 2, Icon = "check" })
-    end
-})
-
-task.wait(0.5)
-updatePlayerList(playerSection)
-
--- ===== VISUAL =====
-local visualSection = visualTab:Section({ Title = "Visual Effects", Icon = "eye" })
-
-visualSection:Toggle({
-    Title = "FullBright",
-    Value = false,
-    Callback = function(state)
-        if state then enableFullBright() else disableFullBright() end
-    end
-})
-
-visualSection:Toggle({
-    Title = "Xray Mode",
-    Value = false,
-    Callback = function(state)
-        if state then enableXray() else disableXray() end
-    end
-})
-
--- ===== STRETCHED RESOLUTION =====
-visualSection:Toggle({
-    Title = "Stretched Resolution",
-    Value = false,
-    Callback = function(state)
-        if state then startStretchRes() else stopStretchRes() end
-    end
-})
-
-visualSection:Slider({
-    Title = "Stretch Ratio",
-    Value = { Min = 1, Max = 15, Default = 10 },
-    Callback = function(value)
-        LouisSettings.StretchResValue = value / 10
-    end
-})
-
--- ===== CAMERA FOV =====
-visualSection:Toggle({
-    Title = "Camera FOV Override",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.CameraFOVEnabled = state
-        if not state and Camera then
-            Camera.FieldOfView = OriginalFOV
-        end
-    end
-})
-
-visualSection:Slider({
-    Title = "Camera FOV Value",
-    Value = { Min = 30, Max = 120, Default = 70 },
-    Callback = function(value)
-        LouisSettings.CameraFOVValue = value
-        if LouisSettings.CameraFOVEnabled and Camera then
-            Camera.FieldOfView = value
-        end
-    end
-})
-
--- ===== JERK TOOL =====
-local jerkSection = visualTab:Section({ Title = "Jerk Tool", Icon = "smile" })
-
-jerkSection:Button({
-    Title = "Create Jerk Tool",
-    Callback = function()
-        spawnJerkTool()
-    end
-})
-
-jerkSection:Toggle({
-    Title = "Auto-create on Respawn",
-    Value = false,
-    Callback = function(state)
-        if state then
-            autoSpawnJerkToolOnRespawn()
-            WindUI:Notify({ Title = "Jerk Tool", Content = "Auto-creation enabled!", Duration = 2, Icon = "check" })
-        else
-            if jerkToolConnection then
-                jerkToolConnection:Disconnect()
-                jerkToolConnection = nil
-            end
-            WindUI:Notify({ Title = "Jerk Tool", Content = "Auto-creation disabled", Duration = 2, Icon = "x" })
-        end
-    end
-})
-
-jerkSection:Paragraph({
-    Title = "Information",
-    Text = "Creates 'Jerk Off R15' tool in inventory\nPlays animation when used\n\nActivate tool in inventory\nAnimation is looped\nEnable auto-creation for permanent access"
-})
-
--- ===== ESP =====
-local espSection = espTab:Section({ Title = "ESP Settings", Icon = "target" })
-
-espSection:Toggle({
-    Title = "ESP (Highlight)",
-    Value = false,
-    Callback = function(state)
-        if state then enableESP() else disableESP() end
-    end
-})
-
-espSection:Toggle({
-    Title = "Show Names",
-    Value = false,
-    Callback = function(state)
-        if state then enableNameTags() else disableNameTags() end
-    end
-})
-
--- ===== TRACERS =====
-espSection:Toggle({
-    Title = "Tracers",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.TracersESP = state
-        if state then
-            WindUI:Notify({ Title = "Tracers", Content = "Tracers enabled!", Duration = 2, Icon = "lines" })
-        end
-    end
-})
-
--- ===== COIN ESP =====
-espSection:Toggle({
-    Title = "Coin ESP",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.CoinESP = state
-        if state then
-            WindUI:Notify({ Title = "Coin ESP", Content = "Coin ESP enabled!", Duration = 2, Icon = "coins" })
-        end
-    end
-})
-
--- ===== HITBOX EXPANDER =====
-espSection:Toggle({
-    Title = "Hitbox Expander",
-    Value = false,
-    Callback = function(state)
-        LouisSettings.HitboxExpander = state
-        if state then
-            WindUI:Notify({ Title = "Hitbox", Content = "Hitbox expander enabled! Size: " .. LouisSettings.HitboxSize, Duration = 2, Icon = "box" })
-        end
-    end
-})
-
-espSection:Slider({
-    Title = "Hitbox Size",
-    Value = { Min = 2, Max = 100, Default = 20 },
-    Callback = function(value)
-        LouisSettings.HitboxSize = value
-    end
-})
-
-espSection:Toggle({
-    Title = "Show Hitbox Visual",
-    Value = true,
-    Callback = function(state)
-        LouisSettings.HitboxVisual = state
-    end
-})
-
--- ===== ESP COLORS =====
-local colorSection = espTab:Section({ Title = "ESP Colors", Icon = "palette" })
-
-colorSection:Colorpicker({
-    Title = "Murderer Color",
-    Default = customMurdererColor,
-    Callback = function(color)
-        customMurdererColor = color
-        if espEnabled then
-            for player, highlight in pairs(espHighlightObjects) do
-                if player and player.Character and getPlayerRole(player) == "Murderer" then
-                    updateESPColorForPlayer(player)
-                end
-            end
-            if nameTagsEnabled then
-                for player, _ in pairs(nameTagObjects) do
-                    if getPlayerRole(player) == "Murderer" then
-                        updateNameTagColorForPlayer(player)
-                    end
-                end
-            end
-        end
-        WindUI:Notify({ Title = "ESP Color", Content = "Murderer color changed", Duration = 2, Icon = "palette" })
-    end
-})
-
-colorSection:Colorpicker({
-    Title = "Sheriff Color",
-    Default = customSheriffColor,
-    Callback = function(color)
-        customSheriffColor = color
-        if espEnabled then
-            for player, highlight in pairs(espHighlightObjects) do
-                if player and player.Character and getPlayerRole(player) == "Sheriff" then
-                    updateESPColorForPlayer(player)
-                end
-            end
-            if nameTagsEnabled then
-                for player, _ in pairs(nameTagObjects) do
-                    if getPlayerRole(player) == "Sheriff" then
-                        updateNameTagColorForPlayer(player)
-                    end
-                end
-            end
-        end
-        WindUI:Notify({ Title = "ESP Color", Content = "Sheriff color changed", Duration = 2, Icon = "palette" })
-    end
-})
-
-colorSection:Colorpicker({
-    Title = "Normal Color",
-    Default = customNormalColor,
-    Callback = function(color)
-        customNormalColor = color
-        if espEnabled then
-            for player, highlight in pairs(espHighlightObjects) do
-                if player and player.Character and getPlayerRole(player) == "Normal" then
-                    updateESPColorForPlayer(player)
-                end
-            end
-            if nameTagsEnabled then
-                for player, _ in pairs(nameTagObjects) do
-                    if getPlayerRole(player) == "Normal" then
-                        updateNameTagColorForPlayer(player)
-                    end
-                end
-            end
-        end
-        WindUI:Notify({ Title = "ESP Color", Content = "Normal color changed", Duration = 2, Icon = "palette" })
-    end
-})
-
-colorSection:Button({
-    Title = "Reset ESP Colors",
-    Callback = function()
-        customMurdererColor = Color3.fromRGB(255, 50, 50)
-        customSheriffColor = Color3.fromRGB(50, 150, 255)
-        customNormalColor = Color3.fromRGB(150, 150, 150)
         
-        if espEnabled then
-            for player, _ in pairs(espHighlightObjects) do
-                updateESPColorForPlayer(player)
-            end
-        end
-        if nameTagsEnabled then
-            for player, _ in pairs(nameTagObjects) do
-                updateNameTagColorForPlayer(player)
-            end
-        end
-        WindUI:Notify({ Title = "Reset", Content = "ESP colors reset to default", Duration = 2, Icon = "check" })
-    end
-})
-
-espTab:Section({ Title = "Information", Icon = "info" }):Paragraph({
-    Title = "About Colors",
-    Text = "Red: Murderer\nBlue: Sheriff\nGray: Normal"
-})
-
--- ===== FARM =====
-local farmSection = farmTab:Section({ Title = "Auto Farm", Icon = "coins" })
-
-farmSection:Paragraph({
-    Title = "Auto Farm Coins with Fling Timer",
-    Text = "Automatic coin collection on map.\n\nScript finds nearest coin\nTeleports to it\nWaits for collection\nRepeats cycle\n\nAfter timer ends, flings Murderer\nFarming works only when ALIVE and coins exist!"
-})
-
-farmSection:Toggle({
-    Title = "Auto Farm Coins",
-    Value = false,
-    Callback = function(state)
-        if state then 
-            startCoinFarm()
-            WindUI:Notify({ Title = "Auto Farm", Content = "Coin farming enabled! Timer: " .. LouisSettings.CoinFarmTimerValue .. " min", Duration = 2, Icon = "coins" })
-        else 
-            stopCoinFarm()
-            WindUI:Notify({ Title = "Auto Farm", Content = "Coin farming disabled", Duration = 2, Icon = "coins" })
-        end
-    end
-})
-
-farmSection:Slider({
-    Title = "Fling Timer (Minutes)",
-    Value = { Min = 1, Max = 5, Default = 1 },
-    Callback = function(value)
-        LouisSettings.CoinFarmTimerValue = value
-        CoinFarmTimeLeft = value * 60
-    end
-})
-
-farmSection:Slider({
-    Title = "Coin Tween Speed",
-    Value = { Min = 20, Max = 90, Default = 50 },
-    Callback = function(value)
-        LouisSettings.CoinUpTweenSpeed = value
-    end
-})
-
-farmSection:Slider({
-    Title = "Max Coin Distance",
-    Value = { Min = 50, Max = 1000, Default = 300 },
-    Callback = function(value)
-        LouisSettings.CoinMaxDistance = value
-    end
-})
-
-farmSection:Button({
-    Title = "Check Status",
-    Callback = function()
-        if isPlayerAlive() then
-            local coinCount = 0
-            DeepScanWorkspaceCoins()
-            coinCount = #ScannedCoins
-            WindUI:Notify({ Title = "Status", Content = "Alive! Coins found: " .. coinCount .. "\nTimer: " .. CoinFarmTimeLeft .. "s remaining", Duration = 3, Icon = "check" })
-        else
-            WindUI:Notify({ Title = "Status", Content = "You are dead! Farming waits for respawn", Duration = 2, Icon = "alert-circle" })
-        end
-    end
-})
-
--- ===== SETTINGS =====
-local keybindsSection = settingsTab:Section({ Title = "Keybinds", Icon = "keyboard" })
-
-keybindsSection:Paragraph({
-    Title = "Keybind Settings",
-    Text = "Click on a key to change it\n\n- Q — Fly Mode\n- M — Teleport to Murderer\n- N — Teleport to Sheriff\n- E — Toggle ESP\n- X — Toggle Noclip\n- K — Toggle Auto Kill All\n- Z — Toggle Spin\n- B — Toggle Auto Bhop\n- C — Toggle Fling on Touch"
-})
-
-local flyKeybind = keybindsSection:Keybind({
-    Title = "Fly Mode (Q)",
-    Default = CONFIG.FLY.KEYBIND,
-    Callback = function()
-        if flying then stopFly() else startFly() end
-    end
-})
-
-local tpMurdererKeybind = keybindsSection:Keybind({
-    Title = "Teleport to Murderer (M)",
-    Default = Enum.KeyCode.M,
-    Callback = function()
-        teleportToMurderer()
-    end
-})
-
-local tpSheriffKeybind = keybindsSection:Keybind({
-    Title = "Teleport to Sheriff (N)",
-    Default = Enum.KeyCode.N,
-    Callback = function()
-        teleportToSheriff()
-    end
-})
-
-local espKeybind = keybindsSection:Keybind({
-    Title = "Toggle ESP (E)",
-    Default = Enum.KeyCode.E,
-    Callback = function()
-        if espEnabled then disableESP() else enableESP() end
-        WindUI:Notify({ Title = "ESP", Content = espEnabled and "ESP enabled" or "ESP disabled", Duration = 2, Icon = "target" })
-    end
-})
-
-local noclipKeybind = keybindsSection:Keybind({
-    Title = "Toggle Noclip (X)",
-    Default = Enum.KeyCode.X,
-    Callback = function()
-        if noclipEnabled then stopNoclip() else startNoclip() end
-        WindUI:Notify({ Title = "Noclip", Content = noclipEnabled and "Noclip enabled" or "Noclip disabled", Duration = 2, Icon = "move" })
-    end
-})
-
-local autoKillKeybind = keybindsSection:Keybind({
-    Title = "Toggle Auto Kill All (K)",
-    Default = Enum.KeyCode.K,
-    Callback = function()
-        if autoKillAllEnabled then disableAutoKillAll() else enableAutoKillAll() end
-        WindUI:Notify({ Title = "Auto Kill", Content = autoKillAllEnabled and "Auto Kill enabled" or "Auto Kill disabled", Duration = 2, Icon = "sword" })
-    end
-})
-
-local spinKeybindElement = keybindsSection:Keybind({
-    Title = "Toggle Spin (Z)",
-    Default = Enum.KeyCode.Z,
-    Callback = function()
-        toggleSpin()
-    end
-})
-
-local bhopKeybindElement = keybindsSection:Keybind({
-    Title = "Toggle Auto Bhop (B)",
-    Default = Enum.KeyCode.B,
-    Callback = function()
-        toggleAutoBhop()
-    end
-})
-
-local touchFlingKeybind = keybindsSection:Keybind({
-    Title = "Toggle Fling on Touch (C)",
-    Default = Enum.KeyCode.C,
-    Callback = function()
-        toggleFlingOnTouch()
-    end
-})
-
-keybindsSection:Button({
-    Title = "Reset All Keys",
-    Callback = function()
-        flyKeybind:Set(Enum.KeyCode.Q)
-        tpMurdererKeybind:Set(Enum.KeyCode.M)
-        tpSheriffKeybind:Set(Enum.KeyCode.N)
-        espKeybind:Set(Enum.KeyCode.E)
-        noclipKeybind:Set(Enum.KeyCode.X)
-        autoKillKeybind:Set(Enum.KeyCode.K)
-        spinKeybindElement:Set(Enum.KeyCode.Z)
-        bhopKeybindElement:Set(Enum.KeyCode.B)
-        touchFlingKeybind:Set(Enum.KeyCode.C)
-        WindUI:Notify({ Title = "Reset", Content = "All keys reset to default", Duration = 2, Icon = "check" })
-    end
-})
-
--- ===== EARLY ROLE DETECTION =====
-local earlySection = settingsTab:Section({ Title = "Early Role Detection", Icon = "eye" })
-
-earlySection:Toggle({
-    Title = "Early Role Detection",
-    Value = true,
-    Callback = function(state)
-        LouisSettings.EarlyRoleDetect = state
-        if state then
-            for _, p in pairs(Players:GetPlayers()) do
-                MonitorRolesForEarlyDetect(p)
-            end
-        end
-    end
-})
-
--- ===== INFO =====
-local infoSection = infoTab:Section({ Title = "About Script", Icon = "info" })
-
-infoSection:Paragraph({
-    Title = "Scripterkiddo v" .. SCRIPT_VERSION,
-    Text = "Version " .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. "\n\n" ..
-           "Game: Murder Mystery 2\n" ..
-           "Update Date: " .. os.date("%d.%m.%Y") .. "\n\n" ..
-           "Main Features:\n" ..
-           "- Speed / Jump Power — change speed and jump height\n" ..
-           "- Fly Mode (Q) — flight mode\n" ..
-           "- Noclip / Anti-AFK — walk through walls and AFK protection\n" ..
-           "- FullBright / Xray Mode — full brightness and x-ray mode\n" ..
-           "- ESP with role detection — highlight Murderer, Sheriff, Normal\n" ..
-           "- Teleports to players and around map\n" ..
-           "- Auto Kill All — automatic killing of all players\n" ..
-           "- Auto Farm (coins) — automatic coin collection with fling timer\n" ..
-           "- Auto Grab Gun — automatic gun pickup\n" ..
-           "- Fling — fling Murderer and Sheriff\n" ..
-           "- Custom ESP colors — personalize colors\n" ..
-           "- Spin (spin in place) — press Z to rotate\n" ..
-           "- Auto Bhop — automatic jumping (B)\n" ..
-           "- Fling on Touch — auto-fling on contact (C)\n" ..
-           "- Jerk Tool — jerk animation\n" ..
-           "- NEW: Aimbot, Silent Aim, Kill Aura\n" ..
-           "- NEW: Wallhop, Fake Bomb jump\n" ..
-           "- NEW: Auto Fling All, Anti-Fling\n" ..
-           "- NEW: Safe Zone, Save/Load Position\n" ..
-           "- NEW: Stretched Resolution, Tracers, Coin ESP\n\n" ..
-           "Discord: " .. DISCORD_LINK
-})
-
--- ===== FEEDBACK =====
-local feedbackSection = infoTab:Section({ Title = "Send Feedback", Icon = "message" })
-
-local feedbackInput = feedbackSection:Input({
-    Title = "Your Message",
-    Placeholder = "Write your feedback here...",
-    Callback = function(text)
-        if text and text ~= "" then
-            sendFeedback(LocalPlayer.Name, text)
-            feedbackInput:Set("")
-            WindUI:Notify({ Title = "Feedback Sent", Content = "Thank you for your feedback!", Duration = 2, Icon = "check" })
-        end
-    end
-})
-
-feedbackSection:Button({
-    Title = "Send Feedback",
-    Callback = function()
-        local text = feedbackInput:Get()
-        if text and text ~= "" then
-            sendFeedback(LocalPlayer.Name, text)
-            feedbackInput:Set("")
-            WindUI:Notify({ Title = "Feedback Sent", Content = "Thank you for your feedback!", Duration = 2, Icon = "check" })
-        else
-            WindUI:Notify({ Title = "Error", Content = "Please write your feedback", Duration = 2, Icon = "alert-circle" })
-        end
-    end
-})
-
--- ========== SETUP EARLY ROLE DETECTION ==========
-for _, p in pairs(Players:GetPlayers()) do
-    MonitorRolesForEarlyDetect(p)
-end
-Players.PlayerAdded:Connect(MonitorRolesForEarlyDetect)
-
--- ========== SETUP AUTO TELEPORT ==========
-SetupAutoTeleport()
-
--- ========== WELCOME NOTIFICATION ==========
-task.wait(0.5)
-WindUI:Notify({
-    Title = "Scripterkiddo v" .. SCRIPT_VERSION,
-    Content = "Version " .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. "\n\nScript successfully loaded!\nEnjoy the game!\n\nNew features added:\n- Aimbot, Silent Aim, Kill Aura\n- Wallhop, Fake Bomb jump\n- Auto Fling All, Anti-Fling\n- Safe Zone, Coin ESP, Tracers\n- Stretched Resolution\n- And more!",
-    Duration = 5,
-    Icon = MY_IMAGE,
-})
-
--- ========== CHAT MESSAGE ==========
-local player = game.Players.LocalPlayer
-if player and player.Character and player.Character:FindFirstChild("Head") then
-    local chatService = game:GetService("Chat")
-    local message = "Scripterkiddo v" .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. " loaded! Enhanced with new features!"
-    pcall(function()
-        chatService:Chat(player.Character.Head, message, Enum.ChatColor.BrightBlue)
+        hrp.CFrame = originalCFrame
     end)
+    
+    if success then
+        WindUI:Notify({ Title = "Auto Grab Gun", Content = "Gun successfully grabbed!", Duration = 2, Icon = "check" })
+    else
+        WindUI:Notify({ Title = "Error", Content = "Error: " .. tostring(err), Duration = 2, Icon = "alert-circle" })
+    end
 end
 
-print("Scripterkiddo v" .. SCRIPT_VERSION .. " successfully loaded!")
-
--- ========== FOV CIRCLE FOR AIMBOT ==========
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Color = Color3.fromRGB(255, 0, 255)
-FOVCircle.Thickness = 1.5
-FOVCircle.NumSides = 60
-FOVCircle.Radius = LouisSettings.FOVSize
-FOVCircle.Filled = false
-FOVCircle.Visible = false
-
-RunService.RenderStepped:Connect(function()
-    if LouisSettings.CameraAimbot and not LouisSettings.HideFOVCircle then
-        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        FOVCircle.Radius = LouisSettings.FOVSize
-        FOVCircle.Visible = true
-    else
-        FOVCircle.Visible = false
-    end
-end)
-
--- ========== TRACERS RENDER ==========
-local tracerObjects = {}
-
-RunService.RenderStepped:Connect(function()
-    if not LouisSettings.TracersESP then
-        for _, tracer in pairs(tracerObjects) do
-            tracer.Visible = false
-        end
-        return
-    end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if root and humanoid and humanoid.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                if onScreen then
-                    local tracer = tracerObjects[player]
-                    if not tracer then
-                        tracer = Drawing.new("Line")
-                        tracer.Thickness = 1.5
-                        tracer.Transparency = 0.8
-                        tracerObjects[player] = tracer
-                    end
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                    local role = GetMM2Role(player)
-                    if role == "Murderer" then
-                        tracer.Color = Color3.fromRGB(255, 0, 0)
-                    elseif role == "Sheriff" then
-                        tracer.Color = Color3.fromRGB(0, 0, 255)
-                    else
-                        tracer.Color = Color3.fromRGB(0, 255, 0)
-                    end
-                    tracer.Visible = true
-                else
-                    if tracerObjects[player] then
-                        tracerObjects[player].Visible = false
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ========== COIN ESP RENDER ==========
-task.spawn(function()
-    while true do
-        if LouisSettings.CoinESP then
-            DeepScanWorkspaceCoins()
-            for _, coinPart in ipairs(ScannedCoins) do
-                if coinPart and coinPart.Parent and not coinPart:FindFirstChild("LouisCoinESP") then
-                    local box = Instance.new("BoxHandleAdornment")
-                    box.Name = "LouisCoinESP"
-                    box.Size = coinPart.Size + Vector3.new(0.1, 0.1, 0.1)
-                    box.Color3 = Color3.fromRGB(255, 215, 0)
-                    box.AlwaysOnTop = true
-                    box.ZIndex = 5
-                    box.Transparency = 0.5
-                    box.Adornee = coinPart
-                    box.Parent = coinPart
-                end
-            end
-        else
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj.Name == "LouisCoinESP" then
-                    obj:Destroy()
-                end
-            end
-        end
-        task.wait(1.5)
-    end
-end)
-
--- ========== HITBOX EXPANDER ==========
-task.spawn(function()
-    while true do
-        if LouisSettings.HitboxExpander then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local root = player.Character:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        local targetSize = Vector3.new(LouisSettings.HitboxSize, LouisSettings.HitboxSize, LouisSettings.HitboxSize)
-                        if root.Size ~= targetSize then
-                            root.Size = targetSize
-                            if LouisSettings.HitboxVisual then
-                                root.Transparency = 0.7
-                                root.Color = Color3.fromRGB(255, 0, 0)
-                                root.Material = Enum.Material.SmoothPlastic
-                            else
-                                root.Transparency = 1
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
--- ========== AUTOSHOOT LOOP ==========
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if LouisSettings.SilentAimEnabled and LouisSettings.AutoShootEnabled then
-            local char = LocalPlayer.Character
-            local gun = char and char:FindFirstChild("Gun")
-            if gun then
-                local targetPlayer = GetTargetByRole("Murderer")
-                if targetPlayer and targetPlayer.Character then
-                    FireGunAtTarget()
-                    task.wait(0.3)
-                end
-            end
-        end
-    end
-end)
-
--- ========== SPEED/JUMP POWER LOOP ==========
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            if speedEnabled then
-                if humanoid.WalkSpeed ~= currentSpeed then
-                    humanoid.WalkSpeed = currentSpeed
-                end
-            end
-            
-            if jumpEnabled then
-                if humanoid.JumpPower ~= currentJumpPower then
-                    humanoid.JumpPower = currentJumpPower
-                end
-            end
-            
-            if LouisSettings.JumpBoostEnabled and humanoid.FloorMaterial == Enum.Material.Air then
-                if humanoid.WalkSpeed ~= LouisSettings.JumpBoostValue then
-                    humanoid.WalkSpeed = LouisSettings.JumpBoostValue
-                end
-            end
-            
-            if LouisSettings.InvisibleEnabled then
-                for _, child in ipairs(character:GetDescendants()) do
-                    if child:IsA("BasePart") or child:IsA("Decal") then
-                        if child.Name ~= "HumanoidRootPart" and child.Transparency ~= 1 then
-                            child.Transparency = 1
-                        end
-                    end
-                end
-            end
-            
-            if LouisSettings.CameraFOVEnabled and Camera then
-                if Camera.FieldOfView ~= LouisSettings.CameraFOVValue then
-                    Camera.FieldOfView = LouisSettings.CameraFOVValue
-                end
-            elseif not LouisSettings.CameraFOVEnabled and Camera then
-                if Camera.FieldOfView ~= OriginalFOV then
-                    Camera.FieldOfView = OriginalFOV
-                end
-            end
-        end
-    end
-end)
-
--- ========== ANTI-VOID ==========
-task.spawn(function()
-    while true do
-        if LouisSettings.AntiVoid and LocalPlayer.Character then
-            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            local voidThreshold = Workspace:FindFirstChild("Normal") and -300 or -80
-            if root and humanoid and humanoid.Health > 0 and root.Position.Y < voidThreshold then
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                if SavedCFrame then
-                    root.CFrame = SavedCFrame
-                else
-                    local spawns = Workspace:FindFirstChildOfClass("SpawnLocation")
-                    if spawns then
-                        root.CFrame = spawns.CFrame * CFrame.new(0, 3, 0)
-                    end
-                end
-                task.wait(0.05)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            end
-        end
-        task.wait(0.5)
-    end
-end)
-
--- ========== FLING FUNCTIONS ==========
+-- ========== FLING ==========
 local function flingPlayer(targetPlayer)
     local char = LocalPlayer.Character
     if not char then return false end
@@ -3945,6 +1476,996 @@ function stopFling()
     WindUI:Notify({ Title = "Fling", Content = "Fling stopped", Duration = 2, Icon = "x" })
 end
 
+-- ========== FARM ==========
+local function GetMap()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:GetAttribute("MapID") and obj:FindFirstChild("CoinContainer") then
+            return obj
+        end
+    end
+    
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:FindFirstChild("CoinContainer") then
+            return obj
+        end
+    end
+    
+    local coinContainer = workspace:FindFirstChild("CoinContainer")
+    if coinContainer and coinContainer.Parent then
+        return coinContainer.Parent
+    end
+    
+    return nil
+end
+
+local function hasCoins()
+    local map = GetMap()
+    if not map then return false end
+    
+    local coinContainer = map:FindFirstChild("CoinContainer")
+    if not coinContainer then return false end
+    
+    for _, coin in ipairs(coinContainer:GetChildren()) do
+        local coinVisual = coin:FindFirstChild("CoinVisual") or coin:FindFirstChild("Handle") or coin
+        if coinVisual then
+            local isCollected = coinVisual:GetAttribute("Collected") or coin:GetAttribute("Collected")
+            if not isCollected then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function getNearestCoin()
+    local hrp = getHRP()
+    if not hrp then return nil end
+    
+    local map = GetMap()
+    if not map then return nil end
+    
+    local coinContainer = map:FindFirstChild("CoinContainer")
+    if not coinContainer then return nil end
+    
+    local closest, closestDist = nil, math.huge
+    
+    for _, coin in ipairs(coinContainer:GetChildren()) do
+        local coinVisual = coin:FindFirstChild("CoinVisual") or coin:FindFirstChild("Handle") or coin
+        if coinVisual then
+            local isCollected = coinVisual:GetAttribute("Collected") or coin:GetAttribute("Collected")
+            if not isCollected then
+                local dist = (hrp.Position - coin.Position).Magnitude
+                if dist < closestDist then
+                    closest = coin
+                    closestDist = dist
+                end
+            end
+        end
+    end
+    
+    return closest
+end
+
+local function teleportToCoin(coin)
+    local hrp = getHRP()
+    local humanoid = getHumanoid()
+    if not hrp or not humanoid then return false end
+    
+    local wasPlatformStand = humanoid.PlatformStand
+    humanoid.PlatformStand = true
+    
+    local distance = (hrp.Position - coin.Position).Magnitude
+    local duration = math.min(distance / farmingSpeed, CONFIG.FARM.TELEPORT_DURATION)
+    
+    local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        CFrame = coin.CFrame + Vector3.new(0, 2, 0)
+    })
+    
+    tween:Play()
+    tween.Completed:Wait()
+    
+    humanoid.PlatformStand = wasPlatformStand
+    return true
+end
+
+local function canFarm()
+    if not isPlayerAlive() then return false end
+    if not hasCoins() then return false end
+    return true
+end
+
+local function startFarming()
+    if farmingEnabled then return end
+    farmingEnabled = true
+    
+    farmingLoop = task.spawn(function()
+        while farmingEnabled do
+            while farmingEnabled and not canFarm() do
+                task.wait(1)
+            end
+            
+            if not farmingEnabled then break end
+            
+            local targetCoin = getNearestCoin()
+            if targetCoin then
+                pcall(function()
+                    teleportToCoin(targetCoin)
+                end)
+            end
+            
+            task.wait(CONFIG.FARM.CHECK_INTERVAL)
+        end
+        farmingLoop = nil
+    end)
+end
+
+local function stopFarming()
+    farmingEnabled = false
+    if farmingLoop then
+        task.cancel(farmingLoop)
+        farmingLoop = nil
+    end
+end
+
+-- ========== UPDATE PLAYER LIST ==========
+local function updatePlayerList(section)
+    if not section or not section.container then
+        warn("updatePlayerList: section or section.container is nil")
+        return
+    end
+    
+    for _, child in pairs(section.container:GetChildren()) do
+        if child:IsA("ImageButton") and child.Name == "PlayerButton" then
+            child:Destroy()
+        end
+    end
+    
+    local playerCount = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            playerCount = playerCount + 1
+            local role = getPlayerRole(player)
+            local roleIcon = (role == "Murderer" and "🔴 " or role == "Sheriff" and "🔵 " or "⚪ ")
+            
+            section:Button({
+                Title = roleIcon .. player.Name .. (role ~= "Normal" and " (" .. role .. ")" or ""),
+                Callback = function()
+                    local success = teleportToPlayer(player)
+                    if success then
+                        WindUI:Notify({ Title = "Teleport", Content = "Teleported to " .. player.Name, Duration = 2, Icon = "map-pin" })
+                    else
+                        WindUI:Notify({ Title = "Error", Content = "Failed to teleport", Duration = 2, Icon = "alert-circle" })
+                    end
+                end
+            })
+        end
+    end
+    
+    if playerCount == 0 then
+        section:Paragraph({
+            Title = "Information",
+            Text = "No other players on server"
+        })
+    end
+end
+
+-- ========== CREATE MAIN WINDOW ==========
+local Window = WindUI:CreateWindow({
+    Title   = "Scripterkiddo",
+    Author  = "by " .. SCRIPT_AUTHOR,
+    Folder  = "WAQURYHUB",
+    Icon    = MY_IMAGE,
+    Theme   = "Violet",
+    Size    = UDim2.fromOffset(720, 500),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    ToggleKey  = Enum.KeyCode.RightShift,
+    Resizable  = true,
+    AutoScale  = true,
+    NewElements = true,
+    HideSearchBar = false,
+    ScrollBarEnabled = false,
+    SideBarWidth = 200,
+    Topbar = {
+        Height      = 44,
+        ButtonsType = "Mac",
+    },
+    OpenButton = {
+        Title    = "Scripterkiddo",
+        Icon     = "rbxassetid://86095931766827",
+        CornerRadius = UDim.new(1,0),
+        StrokeThickness = 2,
+        Enabled  = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Scale = 1,
+        Color = ColorSequence.new(Color3.fromHex("#6A5ACD"), Color3.fromHex("#9370DB"))
+    },
+})
+
+Window:SetBackgroundImage(MY_IMAGE)
+Window:SetBackgroundImageTransparency(0.3)
+
+Window:Tag({
+    Title = "v" .. SCRIPT_VERSION,
+    Color = Color3.fromRGB(255, 105, 180),
+})
+
+task.wait(0.5)
+
+local topbar = Window.UIElements.Main:FindFirstChild("Topbar")
+if topbar then
+    local titleObject = topbar:FindFirstChild("Title")
+    if titleObject then
+        titleObject.TextColor3 = Color3.fromRGB(255, 105, 180)
+        titleObject.Text = "Scripterkiddo - v" .. SCRIPT_VERSION
+    end
+end
+
+-- ========== TABS ==========
+local mainTab = Window:Tab({ Title = "Main", Icon = "house" })
+local movementTab = Window:Tab({ Title = "Movement", Icon = "move" })
+local combatTab = Window:Tab({ Title = "Combat", Icon = "sword" })
+local teleportTab = Window:Tab({ Title = "Teleports", Icon = "map-pin" })
+local visualTab = Window:Tab({ Title = "Visual", Icon = "eye" })
+local espTab = Window:Tab({ Title = "ESP", Icon = "target" })
+local farmTab = Window:Tab({ Title = "Farm", Icon = "coins" })
+local settingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
+local infoTab = Window:Tab({ Title = "Info", Icon = "info" })
+
+WindUI:Notify({
+    Title = "Loading Script...",
+    Content = "Script is loading please wait...",
+    Duration = 3,
+    Icon = "loader"
+})
+task.wait(3)
+
+-- ========== GUI CREATION ==========
+
+-- ===== MAIN =====
+local mainSection = mainTab:Section({ Title = "Welcome to Scripterkiddo!", Icon = MY_IMAGE })
+
+mainSection:Paragraph({
+    Title = "Script Information",
+    Text = "Scripterkiddo v" .. SCRIPT_VERSION .. "\n\n" ..
+           "Developer: " .. SCRIPT_AUTHOR .. "\n" ..
+           "Game: Murder Mystery 2\n" ..
+           "Status: Updated\n\n" ..
+           "Main Features:\n" ..
+           "- Full cheat suite for MM2\n" ..
+           "- ESP with role detection\n" ..
+           "- Auto coin farming\n" ..
+           "- Teleports and fling\n" ..
+           "- And much more!\n\n" ..
+           "Join Discord for support!"
+})
+
+mainSection:Button({
+    Title = "Join Discord",
+    Desc = "Click to copy Discord server link",
+    Icon = "brands-discord",
+    Callback = function()
+        setclipboard(DISCORD_LINK)
+        WindUI:Notify({
+            Title = "Discord",
+            Content = "Link copied to clipboard!",
+            Duration = 3,
+            Icon = "check"
+        })
+    end
+})
+
+mainSection:Paragraph({
+    Title = "Discord Server",
+    Text = "Link: " .. DISCORD_LINK .. "\n\n" ..
+           "Join for:\n" ..
+           "- Getting updates\n" ..
+           "- Support and help\n" ..
+           "- Chat with other users"
+})
+
+-- ===== MOVEMENT =====
+local movementSection = movementTab:Section({ Title = "Movement", Icon = "move" })
+
+movementSection:Toggle({
+    Title = "Speed",
+    Value = false,
+    Callback = function(state)
+        speedEnabled = state
+        if speedEnabled then
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.WalkSpeed = currentSpeed end
+            end
+        else
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.WalkSpeed = 16 end
+            end
+        end
+    end
+})
+
+movementSection:Slider({
+    Title = "Speed Value",
+    Value = { Min = 1, Max = 1000, Default = 16 },
+    Callback = function(value)
+        currentSpeed = value
+        if speedEnabled then
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.WalkSpeed = currentSpeed end
+            end
+        end
+    end
+})
+
+movementSection:Toggle({
+    Title = "Jump Power",
+    Value = false,
+    Callback = function(state)
+        jumpEnabled = state
+        if jumpEnabled then
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.JumpPower = currentJumpPower end
+            end
+        else
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.JumpPower = 50 end
+            end
+        end
+    end
+})
+
+movementSection:Slider({
+    Title = "Jump Power Value",
+    Value = { Min = 1, Max = 500, Default = 50 },
+    Callback = function(value)
+        currentJumpPower = value
+        if jumpEnabled then
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.JumpPower = currentJumpPower end
+            end
+        end
+    end
+})
+
+movementSection:Toggle({
+    Title = "Noclip",
+    Value = false,
+    Callback = function(state)
+        if state then startNoclip() else stopNoclip() end
+    end
+})
+
+movementSection:Toggle({
+    Title = "Infinite Jump",
+    Value = false,
+    Callback = function(state)
+        if state then enableInfiniteJump() else disableInfiniteJump() end
+    end
+})
+
+movementSection:Toggle({
+    Title = "Anti-AFK",
+    Value = false,
+    Callback = function(state)
+        if state then startAntiAfk() else stopAntiAfk() end
+    end
+})
+
+-- ===== FLY =====
+local flySection = movementTab:Section({ Title = "Flight", Icon = "plane" })
+
+flySection:Toggle({
+    Title = "Fly Mode (Press Q)",
+    Value = false,
+    Callback = function(state)
+        if state then startFly() else stopFly() end
+    end
+})
+
+flySection:Slider({
+    Title = "Fly Speed",
+    Value = { Min = CONFIG.FLY.MIN_SPEED, Max = 500, Default = CONFIG.FLY.DEFAULT_SPEED },
+    Callback = function(value)
+        setFlySpeed(value)
+        if flying then
+            stopFly()
+            task.wait(0.1)
+            startFly()
+        end
+    end
+})
+
+-- ===== SPIN =====
+local spinSection = movementTab:Section({ Title = "Spin", Icon = "rotate-cw" })
+
+spinSection:Toggle({
+    Title = "Spin Mode (Press Z)",
+    Value = false,
+    Callback = function(state)
+        if state then startSpin() else stopSpin() end
+    end
+})
+
+spinSection:Slider({
+    Title = "Spin Speed",
+    Value = { Min = 1, Max = 100, Default = 50 },
+    Callback = function(value)
+        setSpinSpeed(value)
+    end
+})
+
+spinSection:Paragraph({
+    Title = "Information",
+    Text = "Character will spin in place\nPress Z for quick toggle\nHigher speed = faster spinning"
+})
+
+-- ===== AUTO BHOP =====
+local bhopSection = movementTab:Section({ Title = "Auto Bhop", Icon = "activity" })
+
+bhopSection:Toggle({
+    Title = "Auto Bhop (Press B)",
+    Value = false,
+    Callback = function(state)
+        if state then enableAutoBhop() else disableAutoBhop() end
+    end
+})
+
+bhopSection:Paragraph({
+    Title = "Information",
+    Text = "Automatically jumps when landing\nCreates bhop effect\nPress B for quick toggle"
+})
+
+-- ===== COMBAT =====
+local combatSection = combatTab:Section({ Title = "Murderer", Icon = "sword" })
+
+combatSection:Toggle({
+    Title = "Auto Kill All",
+    Value = false,
+    Callback = function(state)
+        if state then enableAutoKillAll() else disableAutoKillAll() end
+    end
+})
+
+local gunSection = combatTab:Section({ Title = "Gun Drop", Icon = "target" })
+
+gunSection:Button({
+    Title = "Auto Grab Gun",
+    Callback = function()
+        autoGrabGun()
+    end
+})
+
+gunSection:Paragraph({
+    Title = "Information",
+    Text = "Automatically teleports to dropped gun for 0.15 seconds and returns"
+})
+
+-- ===== FLING =====
+local flingSection = combatTab:Section({ Title = "Fling", Icon = "rocket" })
+
+flingSection:Button({
+    Title = "Fling Murderer",
+    Callback = function()
+        flingMurderer()
+    end
+})
+
+flingSection:Button({
+    Title = "Fling Sheriff",
+    Callback = function()
+        flingSheriff()
+    end
+})
+
+flingSection:Button({
+    Title = "Stop Fling",
+    Callback = function()
+        stopFling()
+    end
+})
+
+flingSection:Paragraph({
+    Title = "Information",
+    Text = "Fling throws player across the map\n\nFling Murderer - fling the killer\nFling Sheriff - fling the sheriff\nStop Fling - stop flinging"
+})
+
+-- ===== FLING ON TOUCH =====
+local touchFlingSection = combatTab:Section({ Title = "Fling on Touch", Icon = "zap" })
+
+touchFlingSection:Toggle({
+    Title = "Auto Fling on Touch (Press C)",
+    Value = false,
+    Callback = function(state)
+        if state then startFlingOnTouch() else stopFlingOnTouch() end
+    end
+})
+
+touchFlingSection:Paragraph({
+    Title = "Information",
+    Text = "Automatically flings any player\nwho comes within " .. CONFIG.FLING.DISTANCE .. " studs of you\nPress C for quick toggle"
+})
+
+-- ===== TELEPORTS =====
+local teleportSection = teleportTab:Section({ Title = "Quick Teleports", Icon = "rocket" })
+
+teleportSection:Button({
+    Title = "Teleport to Murderer",
+    Callback = function()
+        teleportToMurderer()
+    end
+})
+
+teleportSection:Button({
+    Title = "Teleport to Sheriff",
+    Callback = function()
+        teleportToSheriff()
+    end
+})
+
+local mapSection = teleportTab:Section({ Title = "Map Teleports", Icon = "map" })
+
+mapSection:Button({
+    Title = "Teleport to Lobby",
+    Callback = function()
+        teleportToLobby()
+    end
+})
+
+mapSection:Button({
+    Title = "Teleport to Voting Room",
+    Callback = function()
+        teleportToVotingRoom()
+    end
+})
+
+mapSection:Button({
+    Title = "Teleport to Map",
+    Callback = function()
+        teleportToMap()
+    end
+})
+
+mapSection:Button({
+    Title = "Teleport Above Map",
+    Callback = function()
+        teleportAboveMap()
+    end
+})
+
+-- ===== PLAYERS =====
+local playerSection = teleportTab:Section({ Title = "Teleport to Player", Icon = "users" })
+
+playerSection:Button({
+    Title = "Refresh Player List",
+    Callback = function()
+        updatePlayerList(playerSection)
+        WindUI:Notify({ Title = "Updated", Content = "Player list refreshed", Duration = 2, Icon = "check" })
+    end
+})
+
+task.wait(0.5)
+updatePlayerList(playerSection)
+
+-- ===== VISUAL =====
+local visualSection = visualTab:Section({ Title = "Visual Effects", Icon = "eye" })
+
+visualSection:Toggle({
+    Title = "FullBright",
+    Value = false,
+    Callback = function(state)
+        if state then enableFullBright() else disableFullBright() end
+    end
+})
+
+visualSection:Toggle({
+    Title = "Xray Mode",
+    Value = false,
+    Callback = function(state)
+        if state then enableXray() else disableXray() end
+    end
+})
+
+-- ===== JERK TOOL =====
+local jerkSection = visualTab:Section({ Title = "Jerk Tool", Icon = "smile" })
+
+jerkSection:Button({
+    Title = "Create Jerk Tool",
+    Callback = function()
+        spawnJerkTool()
+    end
+})
+
+jerkSection:Toggle({
+    Title = "Auto-create on Respawn",
+    Value = false,
+    Callback = function(state)
+        if state then
+            autoSpawnJerkToolOnRespawn()
+            WindUI:Notify({ Title = "Jerk Tool", Content = "Auto-creation enabled!", Duration = 2, Icon = "check" })
+        else
+            if jerkToolConnection then
+                jerkToolConnection:Disconnect()
+                jerkToolConnection = nil
+            end
+            WindUI:Notify({ Title = "Jerk Tool", Content = "Auto-creation disabled", Duration = 2, Icon = "x" })
+        end
+    end
+})
+
+jerkSection:Paragraph({
+    Title = "Information",
+    Text = "Creates 'Jerk Off R15' tool in inventory\nPlays animation when used\n\nActivate tool in inventory\nAnimation is looped\nEnable auto-creation for permanent access"
+})
+
+-- ===== ESP =====
+local espSection = espTab:Section({ Title = "ESP Settings", Icon = "target" })
+
+espSection:Toggle({
+    Title = "ESP (Highlight)",
+    Value = false,
+    Callback = function(state)
+        if state then enableESP() else disableESP() end
+    end
+})
+
+espSection:Toggle({
+    Title = "Show Names",
+    Value = false,
+    Callback = function(state)
+        if state then enableNameTags() else disableNameTags() end
+    end
+})
+
+-- ===== ESP COLORS =====
+local colorSection = espTab:Section({ Title = "ESP Colors", Icon = "palette" })
+
+colorSection:Colorpicker({
+    Title = "Murderer Color",
+    Default = customMurdererColor,
+    Callback = function(color)
+        customMurdererColor = color
+        if espEnabled then
+            for player, highlight in pairs(espHighlightObjects) do
+                if player and player.Character and getPlayerRole(player) == "Murderer" then
+                    updateESPColorForPlayer(player)
+                end
+            end
+            if nameTagsEnabled then
+                for player, _ in pairs(nameTagObjects) do
+                    if getPlayerRole(player) == "Murderer" then
+                        updateNameTagColorForPlayer(player)
+                    end
+                end
+            end
+        end
+        WindUI:Notify({ Title = "ESP Color", Content = "Murderer color changed", Duration = 2, Icon = "palette" })
+    end
+})
+
+colorSection:Colorpicker({
+    Title = "Sheriff Color",
+    Default = customSheriffColor,
+    Callback = function(color)
+        customSheriffColor = color
+        if espEnabled then
+            for player, highlight in pairs(espHighlightObjects) do
+                if player and player.Character and getPlayerRole(player) == "Sheriff" then
+                    updateESPColorForPlayer(player)
+                end
+            end
+            if nameTagsEnabled then
+                for player, _ in pairs(nameTagObjects) do
+                    if getPlayerRole(player) == "Sheriff" then
+                        updateNameTagColorForPlayer(player)
+                    end
+                end
+            end
+        end
+        WindUI:Notify({ Title = "ESP Color", Content = "Sheriff color changed", Duration = 2, Icon = "palette" })
+    end
+})
+
+colorSection:Colorpicker({
+    Title = "Normal Color",
+    Default = customNormalColor,
+    Callback = function(color)
+        customNormalColor = color
+        if espEnabled then
+            for player, highlight in pairs(espHighlightObjects) do
+                if player and player.Character and getPlayerRole(player) == "Normal" then
+                    updateESPColorForPlayer(player)
+                end
+            end
+            if nameTagsEnabled then
+                for player, _ in pairs(nameTagObjects) do
+                    if getPlayerRole(player) == "Normal" then
+                        updateNameTagColorForPlayer(player)
+                    end
+                end
+            end
+        end
+        WindUI:Notify({ Title = "ESP Color", Content = "Normal color changed", Duration = 2, Icon = "palette" })
+    end
+})
+
+colorSection:Button({
+    Title = "Reset ESP Colors",
+    Callback = function()
+        customMurdererColor = Color3.fromRGB(255, 50, 50)
+        customSheriffColor = Color3.fromRGB(50, 150, 255)
+        customNormalColor = Color3.fromRGB(150, 150, 150)
+        
+        if espEnabled then
+            for player, _ in pairs(espHighlightObjects) do
+                updateESPColorForPlayer(player)
+            end
+        end
+        if nameTagsEnabled then
+            for player, _ in pairs(nameTagObjects) do
+                updateNameTagColorForPlayer(player)
+            end
+        end
+        WindUI:Notify({ Title = "Reset", Content = "ESP colors reset to default", Duration = 2, Icon = "check" })
+    end
+})
+
+espTab:Section({ Title = "Information", Icon = "info" }):Paragraph({
+    Title = "About Colors",
+    Text = "Red: Murderer\nBlue: Sheriff\nGray: Normal"
+})
+
+-- ===== FARM =====
+local farmSection = farmTab:Section({ Title = "Auto Farm", Icon = "coins" })
+
+farmSection:Paragraph({
+    Title = "Auto Farm Coins",
+    Text = "Automatic coin collection on map.\n\nScript finds nearest coin\nTeleports to it\nWaits for collection\nRepeats cycle\n\nFarming works only when ALIVE and coins exist!"
+})
+
+farmSection:Toggle({
+    Title = "Auto Farm Coins",
+    Value = false,
+    Callback = function(state)
+        if state then 
+            startFarming()
+            WindUI:Notify({ Title = "Auto Farm", Content = "Coin farming enabled! Speed: " .. farmingSpeed, Duration = 2, Icon = "coins" })
+        else 
+            stopFarming()
+            WindUI:Notify({ Title = "Auto Farm", Content = "Coin farming disabled", Duration = 2, Icon = "coins" })
+        end
+    end
+})
+
+farmSection:Slider({
+    Title = "Farm Speed",
+    Value = { Min = 10, Max = 100, Default = 20 },
+    Callback = function(value)
+        farmingSpeed = value
+        if farmingEnabled then
+            WindUI:Notify({ Title = "Farm Speed", Content = "Farm speed: " .. farmingSpeed, Duration = 2, Icon = "coins" })
+        end
+    end
+})
+
+farmSection:Button({
+    Title = "Check Status",
+    Callback = function()
+        if isPlayerAlive() then
+            if hasCoins() then
+                local coinCount = 0
+                local map = GetMap()
+                if map and map:FindFirstChild("CoinContainer") then
+                    for _, coin in ipairs(map.CoinContainer:GetChildren()) do
+                        local coinVisual = coin:FindFirstChild("CoinVisual") or coin
+                        if coinVisual and not coinVisual:GetAttribute("Collected") then
+                            coinCount = coinCount + 1
+                        end
+                    end
+                end
+                WindUI:Notify({ Title = "Status", Content = "You are alive! Coins found: " .. coinCount .. "\nFarming is working", Duration = 3, Icon = "check" })
+            else
+                WindUI:Notify({ Title = "Status", Content = "You are alive, but no coins on map", Duration = 2, Icon = "alert-circle" })
+            end
+        else
+            WindUI:Notify({ Title = "Status", Content = "You are dead! Farming waits for respawn", Duration = 2, Icon = "alert-circle" })
+        end
+    end
+})
+
+-- ===== SETTINGS =====
+local keybindsSection = settingsTab:Section({ Title = "Keybinds", Icon = "keyboard" })
+
+keybindsSection:Paragraph({
+    Title = "Keybind Settings",
+    Text = "Click on a key to change it\n\n- Q — Fly Mode\n- M — Teleport to Murderer\n- N — Teleport to Sheriff\n- E — Toggle ESP\n- X — Toggle Noclip\n- K — Toggle Auto Kill All\n- Z — Toggle Spin\n- B — Toggle Auto Bhop\n- C — Toggle Fling on Touch"
+})
+
+local flyKeybind = keybindsSection:Keybind({
+    Title = "Fly Mode (Q)",
+    Default = CONFIG.FLY.KEYBIND,
+    Callback = function()
+        if flying then stopFly() else startFly() end
+    end
+})
+
+local tpMurdererKeybind = keybindsSection:Keybind({
+    Title = "Teleport to Murderer (M)",
+    Default = Enum.KeyCode.M,
+    Callback = function()
+        teleportToMurderer()
+    end
+})
+
+local tpSheriffKeybind = keybindsSection:Keybind({
+    Title = "Teleport to Sheriff (N)",
+    Default = Enum.KeyCode.N,
+    Callback = function()
+        teleportToSheriff()
+    end
+})
+
+local espKeybind = keybindsSection:Keybind({
+    Title = "Toggle ESP (E)",
+    Default = Enum.KeyCode.E,
+    Callback = function()
+        if espEnabled then disableESP() else enableESP() end
+        WindUI:Notify({ Title = "ESP", Content = espEnabled and "ESP enabled" or "ESP disabled", Duration = 2, Icon = "target" })
+    end
+})
+
+local noclipKeybind = keybindsSection:Keybind({
+    Title = "Toggle Noclip (X)",
+    Default = Enum.KeyCode.X,
+    Callback = function()
+        if noclipEnabled then stopNoclip() else startNoclip() end
+        WindUI:Notify({ Title = "Noclip", Content = noclipEnabled and "Noclip enabled" or "Noclip disabled", Duration = 2, Icon = "move" })
+    end
+})
+
+local autoKillKeybind = keybindsSection:Keybind({
+    Title = "Toggle Auto Kill All (K)",
+    Default = Enum.KeyCode.K,
+    Callback = function()
+        if autoKillAllEnabled then disableAutoKillAll() else enableAutoKillAll() end
+        WindUI:Notify({ Title = "Auto Kill", Content = autoKillAllEnabled and "Auto Kill enabled" or "Auto Kill disabled", Duration = 2, Icon = "sword" })
+    end
+})
+
+local spinKeybindElement = keybindsSection:Keybind({
+    Title = "Toggle Spin (Z)",
+    Default = Enum.KeyCode.Z,
+    Callback = function()
+        toggleSpin()
+    end
+})
+
+local bhopKeybindElement = keybindsSection:Keybind({
+    Title = "Toggle Auto Bhop (B)",
+    Default = Enum.KeyCode.B,
+    Callback = function()
+        toggleAutoBhop()
+    end
+})
+
+local touchFlingKeybind = keybindsSection:Keybind({
+    Title = "Toggle Fling on Touch (C)",
+    Default = Enum.KeyCode.C,
+    Callback = function()
+        toggleFlingOnTouch()
+    end
+})
+
+keybindsSection:Button({
+    Title = "Reset All Keys",
+    Callback = function()
+        flyKeybind:Set(Enum.KeyCode.Q)
+        tpMurdererKeybind:Set(Enum.KeyCode.M)
+        tpSheriffKeybind:Set(Enum.KeyCode.N)
+        espKeybind:Set(Enum.KeyCode.E)
+        noclipKeybind:Set(Enum.KeyCode.X)
+        autoKillKeybind:Set(Enum.KeyCode.K)
+        spinKeybindElement:Set(Enum.KeyCode.Z)
+        bhopKeybindElement:Set(Enum.KeyCode.B)
+        touchFlingKeybind:Set(Enum.KeyCode.C)
+        WindUI:Notify({ Title = "Reset", Content = "All keys reset to default", Duration = 2, Icon = "check" })
+    end
+})
+
+-- ===== INFO =====
+local infoSection = infoTab:Section({ Title = "About Script", Icon = "info" })
+
+infoSection:Paragraph({
+    Title = "Scripterkiddo v" .. SCRIPT_VERSION,
+    Text = "Version " .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. "\n\n" ..
+           "Game: Murder Mystery 2\n" ..
+           "Update Date: " .. os.date("%d.%m.%Y") .. "\n\n" ..
+           "Main Features:\n" ..
+           "- Speed / Jump Power — change speed and jump height\n" ..
+           "- Fly Mode (Q) — flight mode\n" ..
+           "- Noclip / Anti-AFK — walk through walls and AFK protection\n" ..
+           "- FullBright / Xray Mode — full brightness and x-ray mode\n" ..
+           "- ESP with role detection — highlight Murderer, Sheriff, Normal\n" ..
+           "- Teleports to players and around map\n" ..
+           "- Auto Kill All — automatic killing of all players\n" ..
+           "- Auto Farm (coins) — automatic coin collection\n" ..
+           "- Auto Grab Gun — automatic gun pickup\n" ..
+           "- Fling — fling Murderer and Sheriff\n" ..
+           "- Custom ESP colors — personalize colors\n" ..
+           "- Spin (spin in place) — press Z to rotate\n" ..
+           "- Auto Bhop — automatic jumping (B)\n" ..
+           "- Fling on Touch — auto-fling on contact (C)\n" ..
+           "- Jerk Tool — jerk animation\n\n" ..
+           "v" .. SCRIPT_VERSION .. " Improvements:\n" ..
+           "- Optimized role caching\n" ..
+           "- Safe Discord sending\n" ..
+           "- Improved memory cleanup\n" ..
+           "- Optimized loops\n\n" ..
+           "Discord: " .. DISCORD_LINK
+})
+
+-- ===== FEEDBACK =====
+local feedbackSection = infoTab:Section({ Title = "Send Feedback", Icon = "message" })
+
+local feedbackInput = feedbackSection:Input({
+    Title = "Your Message",
+    Placeholder = "Write your feedback here...",
+    Callback = function(text)
+        if text and text ~= "" then
+            sendFeedback(LocalPlayer.Name, text)
+            feedbackInput:Set("")
+            WindUI:Notify({ Title = "Feedback Sent", Content = "Thank you for your feedback!", Duration = 2, Icon = "check" })
+        end
+    end
+})
+
+feedbackSection:Button({
+    Title = "Send Feedback",
+    Callback = function()
+        local text = feedbackInput:Get()
+        if text and text ~= "" then
+            sendFeedback(LocalPlayer.Name, text)
+            feedbackInput:Set("")
+            WindUI:Notify({ Title = "Feedback Sent", Content = "Thank you for your feedback!", Duration = 2, Icon = "check" })
+        else
+            WindUI:Notify({ Title = "Error", Content = "Please write your feedback", Duration = 2, Icon = "alert-circle" })
+        end
+    end
+})
+
+-- ========== WELCOME NOTIFICATION ==========
+task.wait(0.5)
+WindUI:Notify({
+    Title = "Scripterkiddo v" .. SCRIPT_VERSION,
+    Content = "Version " .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. "\n\nScript successfully loaded!\nEnjoy the game!\n\nImproved performance\nJerk Tool added!",
+    Duration = 5,
+    Icon = MY_IMAGE,
+})
+
+-- ========== CHAT MESSAGE ==========
+local player = game.Players.LocalPlayer
+if player and player.Character and player.Character:FindFirstChild("Head") then
+    local chatService = game:GetService("Chat")
+    local message = "Scripterkiddo v" .. SCRIPT_VERSION .. " by " .. SCRIPT_AUTHOR .. " loaded! Jerk Tool available!"
+    pcall(function()
+        chatService:Chat(player.Character.Head, message, Enum.ChatColor.BrightBlue)
+    end)
+end
+
+print("Scripterkiddo v" .. SCRIPT_VERSION .. " successfully loaded!")
+
 -- ========== CLEANUP ON CLOSE ==========
 game:BindToClose(function()
     stopAntiAfk()
@@ -3959,14 +2480,6 @@ game:BindToClose(function()
     stopFarming()
     stopFlingOnTouch()
     stopFling()
-    stopKillAura()
-    stopAimbot()
-    stopWallhop()
-    stopAutoGrabGun()
-    stopAutoGrabAndShoot()
-    stopCoinFarm()
-    stopStretchRes()
-    
     if spinEnabled then stopSpin() end
     if autoBhopEnabled then disableAutoBhop() end
     
@@ -3975,7 +2488,9 @@ game:BindToClose(function()
         jerkToolConnection = nil
     end
     if jerkToolInstance then
-        pcall(function() jerkToolInstance:Destroy() end)
+        pcall(function()
+            jerkToolInstance:Destroy()
+        end)
         jerkToolInstance = nil
     end
     
@@ -3992,15 +2507,6 @@ game:BindToClose(function()
             Lighting.FogEnd = originalLightingSettings.FogEnd
             Lighting.FogStart = originalLightingSettings.FogStart
         end)
-    end
-    
-    if Camera then
-        Camera.FieldOfView = OriginalFOV
-    end
-    
-    pcall(function() FOVCircle:Remove() end)
-    for _, tracer in pairs(tracerObjects) do
-        pcall(function() tracer:Remove() end)
     end
     
     print("Scripterkiddo cleaned up")
