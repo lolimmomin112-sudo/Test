@@ -1,4 +1,6 @@
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local WindUI = loadstring(
+    game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua")
+)()
 
 pcall(function()
     WindUI:SetTheme("Midnight")
@@ -54,7 +56,7 @@ end
 
 local Confirmed = false
 WindUI:Popup({
-    Title = "Trav Hub",
+    Title = "Scripterkiddo",
     Icon = "home",
     Desc = "Welcome!",
     Color = Color3.fromRGB(120, 60, 90),
@@ -84,11 +86,16 @@ local Grey = Color3.fromHex("#FFC0CB") -- Pink
 local Purple = Color3.fromHex("#E91E63") -- Pink Red
 local Red = Color3.fromHex("#DC143C") -- Crimson
 
+-- Mobile toggle state
+local isUIVisible = true
+local mobileToggleButton = nil
+local mobileToggleGui = nil
+
 -- */  Window  /* --
 local Window = WindUI:CreateWindow({
-    Title = "Trav Hub",
-    Author = "ðŸ–ï¸ Summer Event Update :)",
-    Folder = "travhub",
+    Title = "Scripterkiddo",
+    Author = "🏖️ Summer Event Update :)",
+    Folder = "scripterkiddo",
     NewElements = true,
     HideSearchBar = false,
     OpenButton = {
@@ -105,12 +112,137 @@ local Window = WindUI:CreateWindow({
     Topbar = {
         Height = 44,
         ButtonsType = "Mac",
-        TagOffset = 56, -- pixels to push Revamped! tag right, prevents overlap with title
+        TagOffset = 56,
     },
 })
 
--- Toggle key (desktop); mobile uses the OpenButton tap (OnlyMobile = false so button shows on all platforms)
+-- Toggle key (desktop); mobile uses the OpenButton tap
 Window:SetToggleKey(Enum.KeyCode.RightShift)
+
+-- Create Mobile Toggle Button (floating UI toggle)
+local function createMobileToggle()
+    if mobileToggleGui then
+        mobileToggleGui:Destroy()
+        mobileToggleGui = nil
+    end
+
+    local coreGui = game:GetService("CoreGui")
+    mobileToggleGui = Instance.new("ScreenGui")
+    mobileToggleGui.Name = "Scripterkiddo_MobileToggle"
+    mobileToggleGui.Parent = coreGui
+    mobileToggleGui.IgnoreGuiInset = true
+
+    -- Main toggle button
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+    toggleBtn.Position = UDim2.new(1, -75, 0.5, -30)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 20, 147) -- Deep Pink
+    toggleBtn.Text = "⏏"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextSize = 30
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.ZIndex = 999
+    toggleBtn.Parent = mobileToggleGui
+
+    -- Corner radius
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = toggleBtn
+
+    -- Shadow effect
+    local shadow = Instance.new("UIStroke")
+    shadow.Color = Color3.fromRGB(255, 255, 255)
+    shadow.Thickness = 2
+    shadow.Transparency = 0.5
+    shadow.Parent = toggleBtn
+
+    -- Pulse animation for visibility
+    local TweenService = game:GetService("TweenService")
+    local pulse = TweenService:Create(toggleBtn, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1), {
+        BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+    })
+    pulse:Play()
+
+    -- Drag functionality
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    toggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = toggleBtn.Position
+        end
+    end)
+
+    toggleBtn.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            local newPos = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+            toggleBtn.Position = newPos
+        end
+    end)
+
+    toggleBtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    -- Toggle functionality
+    toggleBtn.MouseButton1Click:Connect(function()
+        isUIVisible = not isUIVisible
+        if isUIVisible then
+            Window:Show()
+            toggleBtn.Text = "⏏"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+            pulse:Cancel()
+            pulse = TweenService:Create(toggleBtn, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1), {
+                BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+            })
+            pulse:Play()
+        else
+            Window:Hide()
+            toggleBtn.Text = "⏏"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            pulse:Cancel()
+        end
+    end)
+
+    -- Handle window visibility changes from other sources
+    local function syncToggleState()
+        if Window.UIElements and Window.UIElements.Main then
+            local visible = Window.UIElements.Main.Visible
+            if visible ~= isUIVisible then
+                isUIVisible = visible
+                if not isUIVisible then
+                    toggleBtn.Text = "⏏"
+                    toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    pulse:Cancel()
+                else
+                    toggleBtn.Text = "⏏"
+                    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+                    pulse:Cancel()
+                    pulse = TweenService:Create(toggleBtn, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1), {
+                        BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+                    })
+                    pulse:Play()
+                end
+            end
+        end
+    end
+
+    -- Monitor visibility changes
+    game:GetService("RunService").RenderStepped:Connect(syncToggleState)
+end
 
 -- */  Mac Button Effects  /* --
 task.defer(function()
@@ -195,7 +327,7 @@ local Sections = {
         TextTransparency = 0.05,
         TextXAlignment = "Left",
         TextSize = 17,
-        Opened = true, -- Expanded by default so tabs pop out
+        Opened = true,
     }),
     DetectionSection = Window:Section({
         Title = "Detection",
@@ -276,7 +408,7 @@ local Tabs = {
     HomeTab = Sections.HomeSection:Tab({
         Title = "Welcome",
         Icon = "home",
-        Desc = "Get started with Trav Hub",
+        Desc = "Get started with Scripterkiddo",
         IconColor = Blue,
         IconShape = "Square",
         Border = true,
@@ -529,12 +661,16 @@ end)
 -- */  Home Tab  /* --
 do
     Tabs.HomeTab:Paragraph({
-        Title = "Welcome to Trav Hub!",
+        Title = "Welcome to Scripterkiddo!",
         Desc = "Thanks for using our MM2 script. This guide will help you get the most out of every feature.",
     })
     Tabs.HomeTab:Paragraph({
         Title = "Getting Started",
-        Desc = "Â· Toggle the script with Right Shift (or tap the Open button on mobile)\nÂ· Use the section tabs on the left to navigate each category\nÂ· Enable features with toggles; many work instantly",
+        Desc = "· Toggle the script with Right Shift (or tap the Open button on mobile)\n· Use the section tabs on the left to navigate each category\n· Enable features with toggles; many work instantly",
+    })
+    Tabs.HomeTab:Paragraph({
+        Title = "Mobile Controls",
+        Desc = "· Use the floating pink button on the right side of your screen to toggle the UI\n· Drag the button to reposition it anywhere on screen\n· All features work seamlessly on mobile devices",
     })
     Tabs.HomeTab:Paragraph({
         Title = "Autofarm",
@@ -601,7 +737,7 @@ end
 do
     local ThemeSection = Tabs.ThemesTab:Section({
         Title = "UI Theme",
-        Desc = "Switch the look of Trav Hub",
+        Desc = "Switch the look of Scripterkiddo",
         Box = true,
         BoxBorder = true,
         Opened = true,
@@ -2010,7 +2146,7 @@ do
                                 then
                                     pcall(function()
                                         local data = {
-                                            username = "Trav Hub Autofarm",
+                                            username = "Scripterkiddo Autofarm",
                                             embeds = {
                                                 {
                                                     title = "Autofarm Session Report",
@@ -2020,7 +2156,7 @@ do
                                                         coinsPerHour
                                                     ),
                                                     color = 16762880, -- Gold
-                                                    footer = { text = "Trav Hub | MM2" },
+                                                    footer = { text = "Scripterkiddo | MM2" },
                                                 },
                                             },
                                         }
@@ -2583,8 +2719,8 @@ local function CreateAimButton()
     RemoveAimButton()
 
     local coreGui = game:GetService("CoreGui")
-    local screenGui = coreGui:FindFirstChild("WindUI_AimGui") or Instance.new("ScreenGui")
-    screenGui.Name = "WindUI_AimGui"
+    local screenGui = coreGui:FindFirstChild("Scripterkiddo_AimGui") or Instance.new("ScreenGui")
+    screenGui.Name = "Scripterkiddo_AimGui"
     screenGui.Parent = coreGui
 
     local button = Instance.new("TextButton")
@@ -2652,8 +2788,8 @@ local function CreateShotButton()
     RemoveShotButton()
 
     local coreGui = game:GetService("CoreGui")
-    local screenGui = coreGui:FindFirstChild("WindUI_SilentAimGui") or Instance.new("ScreenGui")
-    screenGui.Name = "WindUI_SilentAimGui"
+    local screenGui = coreGui:FindFirstChild("Scripterkiddo_SilentAimGui") or Instance.new("ScreenGui")
+    screenGui.Name = "Scripterkiddo_SilentAimGui"
     screenGui.Parent = coreGui
 
     local button = Instance.new("TextButton")
@@ -3117,15 +3253,6 @@ local function startCoinDetection()
     end)
 end
 
--- Add Coin Detection Tab
--- Tabs.CoinDetectionTab = Window:Tab({ Title = gradient("Coin Detection", Color3.fromHex("#FFD700"), Color3.fromHex("#FFA500")), Icon = "coins" }) -- This line is removed as per the edit hint
-
-local reportingInterval = "Disabled"
-local reportingThread = nil
-local webhookUrl = ""
-local webhookEnabled = false
-local startTime = 0
-
 -- */  Coin Detection Tab  /* --
 do
     local DetectionMainSection = Tabs.CoinDetectionTab:Section({
@@ -3188,7 +3315,7 @@ do
                                 then
                                     pcall(function()
                                         local data = {
-                                            username = "Trav Hub Coin Detection",
+                                            username = "Scripterkiddo Coin Detection",
                                             embeds = {
                                                 {
                                                     title = "Session Report",
@@ -3198,7 +3325,7 @@ do
                                                         coinsPerHour
                                                     ),
                                                     color = 16762880, -- Gold
-                                                    footer = { text = "Trav Hub | MM2" },
+                                                    footer = { text = "Scripterkiddo | MM2" },
                                                 },
                                             },
                                         }
@@ -3293,13 +3420,13 @@ do
                 local HttpService = game:GetService("HttpService")
                 pcall(function()
                     local data = {
-                        username = "Trav Hub Coin Detection",
+                        username = "Scripterkiddo Coin Detection",
                         embeds = {
                             {
-                                title = "âœ… Webhook Test Successful!",
+                                title = "✅ Webhook Test Successful!",
                                 description = "If you're seeing this, the webhook is working correctly.",
                                 color = 65280, -- Green
-                                footer = { text = "Trav Hub | MM2" },
+                                footer = { text = "Scripterkiddo | MM2" },
                             },
                         },
                     }
@@ -3578,35 +3705,37 @@ do
     Tabs.ChangelogsTab:Code({
         Title = "Recent Updates",
         Code = [[
-Trav Hub v6.0
+Scripterkiddo v6.0
 
 Core Features:
-â€¢ Coin Collection Autofarm - Collect coins automatically
-â€¢ Coin Detection system with auto-reset at 40 coins
-â€¢ Anti-AFK for long sessions
-â€¢ Event Item Duplication system
-â€¢ Manual and Auto Fling controls
-â€¢ Discord webhook integration for coin tracking
+• Coin Collection Autofarm - Collect coins automatically
+• Coin Detection system with auto-reset at 40 coins
+• Anti-AFK for long sessions
+• Event Item Duplication system
+• Manual and Auto Fling controls
+• Discord webhook integration for coin tracking
 
 Recent Updates:
-â€¢ Fixed autofarm to run infinitely without stopping
-â€¢ Added robust character handling with waitForCharacter() function
-â€¢ Implemented round detection system with automatic round tracking
-â€¢ Added error protection with pcall for teleportation functions
-â€¢ Added safety mechanisms with 30-second timeout for coin collection
-â€¢ Added automatic character restart when no coins found for extended periods
-â€¢ Improved map loading detection and handling
-â€¢ Added round start notifications and round counter
-â€¢ Enhanced autofarm loop with infinite protection and better error recovery
-â€¢ Added ReplicatedStorage service for better remote handling
+• Renamed from Trav Hub to Scripterkiddo
+• Added mobile-friendly UI toggle button
+• Fixed autofarm to run infinitely without stopping
+• Added robust character handling with waitForCharacter() function
+• Implemented round detection system with automatic round tracking
+• Added error protection with pcall for teleportation functions
+• Added safety mechanisms with 30-second timeout for coin collection
+• Added automatic character restart when no coins found for extended periods
+• Improved map loading detection and handling
+• Added round start notifications and round counter
+• Enhanced autofarm loop with infinite protection and better error recovery
+• Added ReplicatedStorage service for better remote handling
 
 Technical Improvements:
-â€¢ Added roundStartTime and currentRound variables for tracking
-â€¢ Implemented OnClientEvent connection for RoundStart remote
-â€¢ Added waitTime limit (10 seconds) for coin collection waiting
-â€¢ Enhanced character validation with proper parent and alive checks
-â€¢ Added break conditions to prevent infinite loops
-â€¢ Improved notification system with more informative messages
+• Added roundStartTime and currentRound variables for tracking
+• Implemented OnClientEvent connection for RoundStart remote
+• Added waitTime limit (10 seconds) for coin collection waiting
+• Enhanced character validation with proper parent and alive checks
+• Added break conditions to prevent infinite loops
+• Improved notification system with more informative messages
 
 The autofarm now runs continuously across multiple rounds without stopping!
 ]],
@@ -3618,26 +3747,33 @@ The autofarm now runs continuously across multiple rounds without stopping!
         Title = "Original Features",
         Code = [[
 Core Features:
-â€¢ Fastest Coin Autofarm with speed control
-â€¢ Anti-AFK system for long sessions
-â€¢ Coin Detection with auto-reset at 40 coins
-â€¢ Manual and Auto Fling controls
-â€¢ Event Item duplication system
-â€¢ Discord webhook integration for coin session reporting
-â€¢ Session reporting with coins per hour calculation
-â€¢ Murderer detection and auto-fling capabilities
-â€¢ Round-based coin counting and reset
-â€¢ Multiple movement modes and safety features
+• Fastest Coin Autofarm with speed control
+• Anti-AFK system for long sessions
+• Coin Detection with auto-reset at 40 coins
+• Manual and Auto Fling controls
+• Event Item duplication system
+• Discord webhook integration for coin session reporting
+• Session reporting with coins per hour calculation
+• Murderer detection and auto-fling capabilities
+• Round-based coin counting and reset
+• Multiple movement modes and safety features
 
 Core Systems:
-â€¢ WindUI interface with gradient text support
-â€¢ MiniFling function for player manipulation
-â€¢ Coin collection optimization
-â€¢ Webhook notification system for coin tracking
-â€¢ Player role detection (Murderer, Sheriff, etc.)
-â€¢ Map-based coin detection and collection
-â€¢ Character state management
-â€¢ Error handling and recovery systems
+• WindUI interface with gradient text support
+• MiniFling function for player manipulation
+• Coin collection optimization
+• Webhook notification system for coin tracking
+• Player role detection (Murderer, Sheriff, etc.)
+• Map-based coin detection and collection
+• Character state management
+• Error handling and recovery systems
 ]],
     })
 end
+
+-- Initialize mobile toggle button
+task.defer(function()
+    -- Wait a moment for the UI to fully load
+    task.wait(0.5)
+    createMobileToggle()
+end)
