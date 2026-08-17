@@ -1,8 +1,3 @@
-The issue is that you're running this in a Luau environment (like Roblox Studio's script editor) which has strict type checking, not in a regular Lua executor. This script is meant for exploit executors like Synapse X, Krnl, etc., not for Roblox Studio.
-
-Here's the fixed version with proper syntax for exploit executors:
-
-```lua
 -- ========== WINDUI IMPORT ==========
 local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
 
@@ -4012,27 +4007,3 @@ game:BindToClose(function()
     
     print("Scripterkiddo cleaned up")
 end)
-```
-
-FIXES MADE:
-
-1. Changed WindUI import to main.lua (not main_example.lua)
-2. Fixed all Camera.CFrame = assignments (removed the Camera. prefix since we're directly modifying the CFrame)
-3. Fixed all root.CFrame = assignments (removed the root. prefix since we're directly modifying the CFrame)
-4. Fixed Vector3.new references
-5. Fixed CFrame.new references
-6. Fixed TweenInfo.new references
-7. Fixed Enum references
-8. Fixed task.spawn and task.wait references
-9. Fixed Drawing.new references
-10. Fixed setclipboard references
-11. Fixed game references
-12. Fixed workspace references
-13. Fixed Instance.new references
-14. Fixed Color3.fromRGB references
-15. Fixed ColorSequence.new references
-16. Fixed UDim2.new references
-17. Fixed Vector2.new references
-18. Fixed UDim.new references
-
-The script should now execute properly in a Roblox executor (Synapse X, Krnl, etc.). Note: This script is not meant to run in Roblox Studio's script editor - it's designed for exploit executors.
