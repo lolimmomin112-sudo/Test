@@ -1,8 +1,6 @@
-The issue is with the WindUI import. The URL is using main_example.lua which might not exist. Let me fix it and also fix other potential issues:
-
 ```lua
 -- ========== WINDUI IMPORT ==========
-local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
+local WindUI =loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua'))()
 
 -- ========== VARIABLES ==========
 local SCRIPT_VERSION = "3.4"
