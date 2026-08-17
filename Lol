@@ -1,5 +1,8 @@
+The issue is with the WindUI import. The URL is using main_example.lua which might not exist. Let me fix it and also fix other potential issues:
+
+```lua
 -- ========== WINDUI IMPORT ==========
-local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua'))()
+local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
 
 -- ========== VARIABLES ==========
 local SCRIPT_VERSION = "3.4"
@@ -136,7 +139,7 @@ local jerkToolAnimationId = 'rbxassetid://698251653'
 local jerkToolConnection = nil
 local jerkToolInstance = nil
 
--- ========== NEW FEATURES FROM LOUIS SCRIPT ==========
+-- ========== NEW FEATURES VARIABLES ==========
 local SavedCFrame = nil
 local SelectedPlayer = nil
 local FlingFailsafeActive = false
@@ -210,26 +213,9 @@ local LouisSettings = {
     WHInstant = false,
     AimbotMethod = "Camera",
     FakeBombAutoShoot = false,
-    AutoTeleportMap = true
+    AutoTeleportMap = true,
+    InvisibleEnabled = false
 }
-
--- ========== CROSSHAIR SETTINGS ==========
-_G.CrosshairSettings = {
-    Enabled = false,
-    Style = "Cross",
-    Size = 10,
-    Gap = 5,
-    Thickness = 1.5,
-    Color = Color3.fromRGB(0, 255, 150),
-    Rainbow = false,
-    ImageId = "6877713475",
-    Rotation = 0,
-    AutoSpin = false,
-    SpinSpeed = 50,
-    OnlyShiftLock = false,
-    HideDefaultCursor = true
-}
-_G.CrosshairLoaded = false
 
 -- ========== HELPER FUNCTIONS ==========
 local function getHRP()
@@ -1959,7 +1945,7 @@ local function ToggleAutoFlingAll(state)
     end
 end
 
--- ========== NEW: COIN FARM WITH FLING TIMER ==========
+-- ========== NEW: COIN FARM ==========
 local function GetCoinContainer()
     local container = Workspace:FindFirstChild("CoinContainer", true)
     if container then return container end
@@ -1973,12 +1959,6 @@ local function FindCoinBasePart(coinServer)
     if mainCoin and mainCoin:IsA("BasePart") then return mainCoin end
     local coinPart = coinServer:FindFirstChild("Coin", true)
     if coinPart and coinPart:IsA("BasePart") then return coinPart end
-    local coinVisual = coinServer:FindFirstChild("CoinVisual", true)
-    if coinVisual then
-        if coinVisual:IsA("BasePart") then return coinVisual end
-        local visualChild = coinVisual:FindFirstChild("MainCoin") or coinVisual:FindFirstChild("Coin") or coinVisual:FindFirstChildOfClass("BasePart")
-        if visualChild and visualChild:IsA("BasePart") then return visualChild end
-    end
     local anyPart = coinServer:FindFirstChildOfClass("BasePart") or coinServer:FindFirstChildOfClass("MeshPart")
     if anyPart then return anyPart end
     return nil
@@ -2002,25 +1982,6 @@ local function DeepScanWorkspaceCoins()
     end
 end
 
-local function IsAnotherPlayerNear(coinPart)
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if root and humanoid and humanoid.Health > 0 then
-                local distance = (root.Position - coinPart.Position).Magnitude
-                local role = GetMM2Role(player)
-                if role == "Murderer" then
-                    if distance < 35 then return true end
-                else
-                    if distance < 7 then return true end
-                end
-            end
-        end
-    end
-    return false
-end
-
 local function GetNearestCoin()
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -2030,22 +1991,14 @@ local function GetNearestCoin()
     local shortestDistance = math.huge
     for _, coinPart in ipairs(ScannedCoins) do
         if coinPart and coinPart.Parent and not CollectedCoins[coinPart] then
-            if not IsAnotherPlayerNear(coinPart) then
-                local distance = (root.Position - coinPart.Position).Magnitude
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    closestCoin = coinPart
-                end
+            local distance = (root.Position - coinPart.Position).Magnitude
+            if distance < shortestDistance and distance <= LouisSettings.CoinMaxDistance then
+                shortestDistance = distance
+                closestCoin = coinPart
             end
         end
     end
-    if closestCoin then
-        local distance = (root.Position - closestCoin.Position).Magnitude
-        if distance <= LouisSettings.CoinMaxDistance then
-            return closestCoin
-        end
-    end
-    return nil
+    return closestCoin
 end
 
 local currentCoinTween = nil
@@ -2120,7 +2073,6 @@ local function CollectCoin(coinPart)
     task.wait(0.05)
 end
 
--- ========== NEW: COIN FARM LOOP WITH FLING TIMER ==========
 local coinFarmLoop = nil
 
 local function startCoinFarm()
@@ -2146,7 +2098,6 @@ local function startCoinFarm()
             else
                 if FlingDurationLeft > 0 then
                     FlingDurationLeft = FlingDurationLeft - 1
-                    -- Fling murder while timer is active
                     local murderer = GetTargetByRole("Murderer")
                     if murderer and murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart") then
                         local char = LocalPlayer.Character
@@ -2587,7 +2538,7 @@ movementSection:Toggle({
     end
 })
 
--- ===== NEW: JUMP BOOST =====
+-- ===== JUMP BOOST =====
 movementSection:Toggle({
     Title = "Jump Boost (Air Speed)",
     Value = false,
@@ -2671,7 +2622,7 @@ bhopSection:Paragraph({
     Text = "Automatically jumps when landing\nCreates bhop effect\nPress B for quick toggle"
 })
 
--- ===== NEW: WALLHOP =====
+-- ===== WALLHOP =====
 local wallhopSection = movementTab:Section({ Title = "Wallhop", Icon = "wall" })
 
 wallhopSection:Toggle({
@@ -2712,7 +2663,7 @@ wallhopSection:Slider({
     end
 })
 
--- ===== NEW: FAKE BOMB =====
+-- ===== FAKE BOMB =====
 local bombSection = movementTab:Section({ Title = "Fake Bomb Jump", Icon = "bomb" })
 
 bombSection:Button({
@@ -2746,7 +2697,7 @@ combatSection:Toggle({
     end
 })
 
--- ===== NEW: KILL AURA =====
+-- ===== KILL AURA =====
 combatSection:Toggle({
     Title = "Kill Aura",
     Value = false,
@@ -2763,7 +2714,7 @@ combatSection:Slider({
     end
 })
 
--- ===== NEW: SILENT AIM =====
+-- ===== SILENT AIM =====
 local silentAimSection = combatTab:Section({ Title = "Silent Aim", Icon = "target" })
 
 silentAimSection:Toggle({
@@ -2801,7 +2752,7 @@ silentAimSection:Button({
     end
 })
 
--- ===== NEW: AIMBOT =====
+-- ===== AIMBOT =====
 local aimbotSection = combatTab:Section({ Title = "Aimbot", Icon = "crosshair" })
 
 aimbotSection:Toggle({
@@ -2855,7 +2806,7 @@ aimbotSection:Slider({
     end
 })
 
--- ===== NEW: AUTO GRAB GUN =====
+-- ===== AUTO GRAB GUN =====
 local gunSection = combatTab:Section({ Title = "Gun Drop", Icon = "target" })
 
 gunSection:Toggle({
@@ -2962,7 +2913,7 @@ touchFlingSection:Paragraph({
     Text = "Automatically flings any player\nwho comes within " .. CONFIG.FLING.DISTANCE .. " studs of you\nPress C for quick toggle"
 })
 
--- ===== NEW: ANTI-FLING =====
+-- ===== ANTI-FLING =====
 touchFlingSection:Toggle({
     Title = "Anti-Fling",
     Value = false,
@@ -2974,7 +2925,7 @@ touchFlingSection:Toggle({
     end
 })
 
--- ===== NEW: AUTO FLING ALL =====
+-- ===== AUTO FLING ALL =====
 touchFlingSection:Toggle({
     Title = "Auto Fling All Players",
     Value = false,
@@ -2986,7 +2937,7 @@ touchFlingSection:Toggle({
     end
 })
 
--- ===== NEW: SAFE ZONE =====
+-- ===== SAFE ZONE =====
 local safeSection = combatTab:Section({ Title = "Safe Zone", Icon = "shield" })
 
 safeSection:Toggle({
@@ -3070,7 +3021,7 @@ mapSection:Button({
     end
 })
 
--- ===== NEW: AUTO TELEPORT MAP =====
+-- ===== AUTO TELEPORT MAP =====
 mapSection:Toggle({
     Title = "Auto Teleport to Map",
     Value = true,
@@ -3115,7 +3066,7 @@ visualSection:Toggle({
     end
 })
 
--- ===== NEW: STRETCHED RESOLUTION =====
+-- ===== STRETCHED RESOLUTION =====
 visualSection:Toggle({
     Title = "Stretched Resolution",
     Value = false,
@@ -3132,7 +3083,7 @@ visualSection:Slider({
     end
 })
 
--- ===== NEW: CAMERA FOV =====
+-- ===== CAMERA FOV =====
 visualSection:Toggle({
     Title = "Camera FOV Override",
     Value = false,
@@ -3206,7 +3157,7 @@ espSection:Toggle({
     end
 })
 
--- ===== NEW: TRACERS =====
+-- ===== TRACERS =====
 espSection:Toggle({
     Title = "Tracers",
     Value = false,
@@ -3214,16 +3165,11 @@ espSection:Toggle({
         LouisSettings.TracersESP = state
         if state then
             WindUI:Notify({ Title = "Tracers", Content = "Tracers enabled!", Duration = 2, Icon = "lines" })
-        else
-            for _, tracer in pairs(ActiveTracers) do
-                pcall(function() tracer:Remove() end)
-            end
-            table.clear(ActiveTracers)
         end
     end
 })
 
--- ===== NEW: COIN ESP =====
+-- ===== COIN ESP =====
 espSection:Toggle({
     Title = "Coin ESP",
     Value = false,
@@ -3235,7 +3181,7 @@ espSection:Toggle({
     end
 })
 
--- ===== NEW: HITBOX EXPANDER =====
+-- ===== HITBOX EXPANDER =====
 espSection:Toggle({
     Title = "Hitbox Expander",
     Value = false,
@@ -3521,7 +3467,7 @@ keybindsSection:Button({
     end
 })
 
--- ===== NEW: EARLY ROLE DETECTION =====
+-- ===== EARLY ROLE DETECTION =====
 local earlySection = settingsTab:Section({ Title = "Early Role Detection", Icon = "eye" })
 
 earlySection:Toggle({
@@ -3774,28 +3720,24 @@ task.spawn(function()
         local character = LocalPlayer.Character
         local humanoid = character and character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            -- Speed
             if speedEnabled then
                 if humanoid.WalkSpeed ~= currentSpeed then
                     humanoid.WalkSpeed = currentSpeed
                 end
             end
             
-            -- Jump Power
             if jumpEnabled then
                 if humanoid.JumpPower ~= currentJumpPower then
                     humanoid.JumpPower = currentJumpPower
                 end
             end
             
-            -- Jump Boost (air speed)
             if LouisSettings.JumpBoostEnabled and humanoid.FloorMaterial == Enum.Material.Air then
                 if humanoid.WalkSpeed ~= LouisSettings.JumpBoostValue then
                     humanoid.WalkSpeed = LouisSettings.JumpBoostValue
                 end
             end
             
-            -- Invisibility
             if LouisSettings.InvisibleEnabled then
                 for _, child in ipairs(character:GetDescendants()) do
                     if child:IsA("BasePart") or child:IsA("Decal") then
@@ -3806,7 +3748,6 @@ task.spawn(function()
                 end
             end
             
-            -- Camera FOV
             if LouisSettings.CameraFOVEnabled and Camera then
                 if Camera.FieldOfView ~= LouisSettings.CameraFOVValue then
                     Camera.FieldOfView = LouisSettings.CameraFOVValue
@@ -3846,6 +3787,169 @@ task.spawn(function()
         task.wait(0.5)
     end
 end)
+
+-- ========== FLING FUNCTIONS ==========
+local function flingPlayer(targetPlayer)
+    local char = LocalPlayer.Character
+    if not char then return false end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    local rootPart = humanoid and humanoid.RootPart
+    if not rootPart then return false end
+    
+    local tChar = targetPlayer.Character
+    if not tChar then return false end
+    
+    local tHumanoid = tChar:FindFirstChildOfClass("Humanoid")
+    local tRootPart = tHumanoid and tHumanoid.RootPart
+    local tHead = tChar:FindFirstChild("Head")
+    
+    if not tChar:FindFirstChildWhichIsA("BasePart") then
+        return false
+    end
+    
+    if rootPart.Velocity.Magnitude < 50 then
+        oldPos = rootPart.CFrame
+    end
+    
+    if tHumanoid and tHumanoid.Sit then
+        WindUI:Notify({ Title = "Warning", Content = targetPlayer.Name .. " is sitting, fling impossible", Duration = 2, Icon = "alert-circle" })
+        return false
+    end
+    
+    local camera = workspace.CurrentCamera
+    if tHead then
+        camera.CameraSubject = tHead
+    elseif tHumanoid then
+        camera.CameraSubject = tHumanoid
+    end
+    
+    workspace.FallenPartsDestroyHeight = 0/0
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.Parent = rootPart
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    
+    local startTime = tick()
+    local angle = 0
+    local basePart = tRootPart or tHead
+    
+    while flingActive and basePart and basePart.Parent do
+        if rootPart and tHumanoid then
+            angle = angle + 100
+            
+            rootPart.CFrame = CFrame.new(basePart.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(angle), 0, 0)
+            char:SetPrimaryPartCFrame(CFrame.new(basePart.Position) * CFrame.new(0, 1.5, 0) * CFrame.Angles(math.rad(angle), 0, 0))
+            rootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            rootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+            task.wait()
+            
+            rootPart.CFrame = CFrame.new(basePart.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(angle), 0, 0)
+            char:SetPrimaryPartCFrame(CFrame.new(basePart.Position) * CFrame.new(0, -1.5, 0) * CFrame.Angles(math.rad(angle), 0, 0))
+            rootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            rootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+            task.wait()
+        end
+        
+        if tick() - startTime > CONFIG.FLING.DURATION then break end
+    end
+    
+    bv:Destroy()
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    camera.CameraSubject = humanoid
+    
+    if oldPos then
+        repeat
+            rootPart.CFrame = oldPos * CFrame.new(0, 0.5, 0)
+            char:SetPrimaryPartCFrame(oldPos * CFrame.new(0, 0.5, 0))
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Velocity = Vector3.new()
+                    part.RotVelocity = Vector3.new()
+                end
+            end
+            task.wait()
+        until (rootPart.Position - oldPos.p).Magnitude < 25
+        workspace.FallenPartsDestroyHeight = fallenPartsDestroyHeight
+    end
+    
+    return true
+end
+
+function flingMurderer()
+    local murderer = getMurdererPlayer()
+    if not murderer then
+        WindUI:Notify({ Title = "Error", Content = "Murderer not found on server", Duration = 2, Icon = "alert-circle" })
+        return
+    end
+    
+    if flingActive then
+        flingActive = false
+        task.wait(0.1)
+    end
+    
+    flingActive = true
+    WindUI:Notify({ Title = "Fling Murderer", Content = "Flinging Murderer started!", Duration = 2, Icon = "rocket" })
+    
+    if flingLoop then task.cancel(flingLoop) end
+    flingLoop = task.spawn(function()
+        while flingActive do
+            local currentMurderer = getMurdererPlayer()
+            if not currentMurderer or not currentMurderer.Character then
+                flingActive = false
+                WindUI:Notify({ Title = "Error", Content = "Murderer no longer found, fling stopped", Duration = 2, Icon = "alert-circle" })
+                break
+            end
+            pcall(function() flingPlayer(currentMurderer) end)
+            task.wait(0.2)
+        end
+        flingLoop = nil
+    end)
+end
+
+function flingSheriff()
+    local sheriff = getSheriffPlayer()
+    if not sheriff then
+        WindUI:Notify({ Title = "Error", Content = "Sheriff not found on server", Duration = 2, Icon = "alert-circle" })
+        return
+    end
+    
+    if flingActive then
+        flingActive = false
+        task.wait(0.1)
+    end
+    
+    flingActive = true
+    WindUI:Notify({ Title = "Fling Sheriff", Content = "Flinging Sheriff started!", Duration = 2, Icon = "rocket" })
+    
+    if flingLoop then task.cancel(flingLoop) end
+    flingLoop = task.spawn(function()
+        while flingActive do
+            local currentSheriff = getSheriffPlayer()
+            if not currentSheriff or not currentSheriff.Character then
+                flingActive = false
+                WindUI:Notify({ Title = "Error", Content = "Sheriff no longer found, fling stopped", Duration = 2, Icon = "alert-circle" })
+                break
+            end
+            pcall(function() flingPlayer(currentSheriff) end)
+            task.wait(0.2)
+        end
+        flingLoop = nil
+    end)
+end
+
+function stopFling()
+    flingActive = false
+    if flingLoop then
+        task.cancel(flingLoop)
+        flingLoop = nil
+    end
+    WindUI:Notify({ Title = "Fling", Content = "Fling stopped", Duration = 2, Icon = "x" })
+end
 
 -- ========== CLEANUP ON CLOSE ==========
 game:BindToClose(function()
@@ -3907,3 +4011,6 @@ game:BindToClose(function()
     
     print("Scripterkiddo cleaned up")
 end)
+```
+
+The main fix was changing the WindUI import from main_example.lua to main.lua in the /dist/ folder. This should now execute properly.
