@@ -1,6 +1,4 @@
--- ========== WINDUI IMPORT ==========
-local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
-
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- ========== VARIABLES ==========
 local SCRIPT_VERSION = "3.4"
 local SCRIPT_AUTHOR = "789"
